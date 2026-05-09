@@ -1,0 +1,107 @@
+"""tinker/prepare.py — nlp-classification domain (20 newsgroups subset) — auto-research v0.12.0+.
+
+One-time data prep:
+  - Loads sklearn fetch_20newsgroups, restricted to a 4-class subset for speed
+  - Builds a TF-IDF vectorizer (default unigram, max_features=10000)
+    on the train split only (no val leakage), saves both tensors and vectorizer
+  - Saves train.npz / val.npz / vectorizer.pkl + manifest.json under tinker/data/
+
+Hard rules (agent must NOT modify this file):
+  - Train/val split is fetched directly from sklearn (frozen by 20news split).
+  - Vectorizer is fit on train only; val is transformed with the same vectorizer.
+  - Modifying these is data leakage.
+  - The agent may load the vectorizer to extract `max_features` etc. but must not
+    re-fit it on val data.
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+"""
+
+from __future__ import annotations
+
+import json
+import pickle
+from pathlib import Path
+
+import numpy as np
+from sklearn.datasets import fetch_20newsgroups
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
+DOMAIN = "nlp-classification"
+# 4-class subset for manageable size; full 20 categories would 5x dataset
+CATEGORIES = [
+    "alt.atheism",
+    "comp.graphics",
+    "sci.med",
+    "talk.politics.guns",
+]
+MAX_FEATURES = 10_000
+
+
+def main():
+    data_dir = Path(__file__).parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"# fetching 20newsgroups (4-class subset, may take ~30s on first run)…")
+    train = fetch_20newsgroups(
+        subset="train",
+        categories=CATEGORIES,
+        remove=("headers", "footers", "quotes"),  # reduce metadata leakage
+        shuffle=True,
+        random_state=42,
+    )
+    val = fetch_20newsgroups(
+        subset="test",
+        categories=CATEGORIES,
+        remove=("headers", "footers", "quotes"),
+        shuffle=True,
+        random_state=42,
+    )
+
+    print(f"# train docs: {len(train.data)}  val docs: {len(val.data)}")
+
+    # Fit TF-IDF on train ONLY
+    vectorizer = TfidfVectorizer(
+        max_features=MAX_FEATURES,
+        ngram_range=(1, 1),
+        sublinear_tf=True,
+        norm="l2",
+    )
+    X_train = vectorizer.fit_transform(train.data).astype(np.float32)
+    X_val = vectorizer.transform(val.data).astype(np.float32)
+
+    # Convert sparse → dense for simple torch loader
+    # (TF-IDF on 4-class 20news at 10k features is ~10k × 2.4k = 24M floats ≈ 96 MB OK)
+    X_train_dense = X_train.toarray()
+    X_val_dense = X_val.toarray()
+    y_train = np.asarray(train.target, dtype=np.int64)
+    y_val = np.asarray(val.target, dtype=np.int64)
+
+    np.savez(data_dir / "train.npz", x=X_train_dense, y=y_train)
+    np.savez(data_dir / "val.npz", x=X_val_dense, y=y_val)
+    with open(data_dir / "vectorizer.pkl", "wb") as f:
+        pickle.dump(vectorizer, f)
+
+    manifest = {
+        "schema_version": 1,
+        "domain": DOMAIN,
+        "dataset": "sklearn.datasets.fetch_20newsgroups (4-class subset)",
+        "categories": CATEGORIES,
+        "n_classes": len(CATEGORIES),
+        "n_train": int(X_train_dense.shape[0]),
+        "n_val": int(X_val_dense.shape[0]),
+        "n_features": int(X_train_dense.shape[1]),
+        "max_features": MAX_FEATURES,
+        "ngram_range": [1, 1],
+        "license": "BSD (sklearn-bundled fetcher; underlying 20newsgroups corpus is public)",
+        "vectorizer_class": "TfidfVectorizer",
+    }
+    (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+
+    print(f"# wrote train: {X_train_dense.shape}, val: {X_val_dense.shape}")
+    print(f"# manifest: {data_dir / 'manifest.json'}")
+
+
+if __name__ == "__main__":
+    main()

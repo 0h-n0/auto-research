@@ -324,6 +324,7 @@ The autonomous tinker loop, originally specialized for LLM pretraining (v0.9.0 /
 | `vision-classification` (v0.11.0+) | CIFAR-10 (torchvision) | minimal CNN (~200 LoC) | `val_acc` (max) |
 | `rl-cartpole` (v0.11.0+) | CartPole-v1 (gymnasium) | REINFORCE policy (~190 LoC) | `episode_return` (max) |
 | `tabular-classification` (v0.11.0+) | sklearn breast_cancer | minimal MLP (~150 LoC) | `val_acc` (max) |
+| `nlp-classification` (v0.12.0+) | sklearn 20newsgroups (4-class) | TF-IDF + MLP (~150 LoC) | `val_acc` (max) |
 
 ```bash
 # Single-agent tinker on a non-LLM domain
@@ -336,6 +337,8 @@ bash scripts/swarm_init.sh <slug> --agents 3 --domain rl-cartpole
 Each domain is a self-contained pack (`train.py.txt` / `prepare.py.txt` / `program.md` / `pyproject.toml` / `metric_spec.json`). The `metric_spec.json` declares the direction (`min` or `max`); `tinker_run.sh` compares the best direction-aware. **Fully backward-compatible**: existing `lm-pretrain` projects keep working as-is (default domain, legacy `val_bpb` field still emitted).
 
 The five swarm strategies (depth / lr / arch / batch / random-restart) apply across all domains. The example knobs in each `program_<strategy>.md` use LLM hparams, but the underlying themes (scale / optimization / structure / batch / random) translate naturally — the agent reads them in domain context.
+
+**Added in v0.12.0** — `skills/research.autonomous.swarm/references/strategy_adapters.md` is a single source of truth that spells out each (strategy, domain) cell: which `Config` knobs to vary, which to leave alone, and a domain-specific hint. When you run swarm mode on a non-LLM domain, the agent should read both `program_<strategy>.md` and the adapter doc before deciding on a change.
 
 Spec: `skills/research.autonomous.tinker/references/domains/README.md`
 

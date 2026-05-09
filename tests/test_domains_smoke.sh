@@ -13,7 +13,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DOMAINS_DIR="${ROOT}/skills/research.autonomous.tinker/references/domains"
-DOMAINS=("vision-classification" "rl-cartpole" "tabular-classification")
+DOMAINS=("vision-classification" "rl-cartpole" "tabular-classification" "nlp-classification")
 
 PASS=0
 FAIL=0

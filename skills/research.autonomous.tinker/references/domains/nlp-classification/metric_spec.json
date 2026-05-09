@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "domain": "nlp-classification",
+  "name": "val_acc",
+  "direction": "max",
+  "scale": "linear",
+  "min_useful": 0.05,
+  "max_useful": 1.00,
+  "notes": "20 newsgroups subset (4 classes, ~2.4k train / ~1.6k val) top-1 accuracy. Random chance = 0.25. Strong TF-IDF+linear baseline reaches ~0.85; bigram + tuned MLP can push toward 0.90."
+}

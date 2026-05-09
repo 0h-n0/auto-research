@@ -52,12 +52,12 @@ if [[ -z "${SLUG}" ]]; then
   exit 2
 fi
 
-# Validate domain (v0.11.0+)
+# Validate domain (v0.11.0+, nlp-classification added in v0.12.0)
 case "${DOMAIN}" in
-  lm-pretrain|vision-classification|rl-cartpole|tabular-classification) ;;
+  lm-pretrain|vision-classification|rl-cartpole|tabular-classification|nlp-classification) ;;
   *)
     echo "ERROR: unknown domain '${DOMAIN}'." >&2
-    echo "Available: lm-pretrain (default), vision-classification, rl-cartpole, tabular-classification" >&2
+    echo "Available: lm-pretrain (default), vision-classification, rl-cartpole, tabular-classification, nlp-classification" >&2
     exit 2
     ;;
 esac

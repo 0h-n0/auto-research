@@ -7,6 +7,37 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-05-10 — Strategy × Domain Adapters + nlp-classification
+
+### Added (Adapter SoT)
+- **`skills/research.autonomous.swarm/references/strategy_adapters.md`**: 5 戦略 × 5 domain
+  = 25 セルのマッピング SoT (動かす Config / 触らない領域 / domain 固有 hint)
+- swarm の各戦略 program は LLM hparam を例示するが、本ファイルが他 domain への翻訳を提供
+
+### Added (Domain Pack)
+- **`nlp-classification`** (`skills/research.autonomous.tinker/references/domains/nlp-classification/`):
+  - sklearn `fetch_20newsgroups` 4-class subset (alt.atheism / comp.graphics / sci.med / talk.politics.guns)
+  - headers/footers/quotes 除去で metadata leakage 防止
+  - TF-IDF (max_features=10000) train fit / val transform
+  - 自前 ~150 LoC TextMLP (depth/hidden/dropout/label_smoothing knobs)
+  - metric: `val_acc` (max)、~85% baseline、>90% は工夫で達成可能
+  - 禁止: `transformers`, `sentence-transformers`, HF model hub
+
+### Changed (Validation)
+- `scripts/swarm_init.sh`: `nlp-classification` を許可 domain に追加
+- `tests/test_domains_smoke.sh`: 4 domain → **5 domain**、38 → **50 sub-tests**
+
+### Added (Tests)
+- **`tests/test_strategy_adapters.sh`** (14 sub-tests):
+  file 存在 + 5 strategy section + 5 domain mention + 不変条件節 + forbidden imports + logU ranges
+- 全テスト 12 → **13** (strategy_adapters 追加)
+
+### Notes
+- **完全 後方互換**: 既存ワークフロー (lm-pretrain / 4 domain / 5 戦略) はそのまま動作
+- domain count: 4 → **5** (lm-pretrain / vision-classification / rl-cartpole / tabular-classification / nlp-classification)
+- adapter doc は **agent が自分で domain を読み替える** 現実的な落とし所
+- karpathy attribution は新 domain で +2 箇所、累計 32+ 箇所
+
 ## [0.11.0] - 2026-05-10 — Tinker Domain Packs (vision / RL / tabular)
 
 ### Acknowledgement
