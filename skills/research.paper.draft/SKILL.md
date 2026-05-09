@@ -11,9 +11,14 @@ description: >
 
 `auto-research` Phase 7 の論文ドラフト生成スキル。
 
+> **v0.13.0+ 連携**: もし Phase 2 以降で `research.paper.scaffold` が呼ばれて
+> `paper/DRAFT.md` が既に存在する場合、本 skill は **DRAFT.md を入力**として使い
+> sections/ への分割と並列ドラフトを行う。存在しない場合は既存挙動 (paper_skeleton.{md,tex} から開始)。
+
 ## 入力 / 出力
 
-入力:
+入力 (優先順位):
+- (v0.13.0+) `.research/<slug>/paper/DRAFT.md` (paper.scaffold が育てた living document、存在すれば最優先)
 - `.research/<slug>/01_BRIEF.md` (paper_format で latex-neurips / latex-acl / markdown を分岐)
 - `.research/<slug>/04_EXPERIMENT_PLAN.md`
 - `.research/<slug>/06_RESULTS.md` + `06_RUNS/*/metrics.json`
@@ -28,6 +33,17 @@ description: >
 
 ## ステップ
 
+### 0. DRAFT.md detection (v0.13.0+)
+
+`paper/DRAFT.md` が存在する場合 (paper.scaffold v0.13.0+ で育てられた状態):
+
+1. DRAFT.md を **入力**として読み込む
+2. 各 `## ... ` section を独立に切り出して `paper/sections/<name>.md` へ保存
+3. step 2 (章ごと並列ドラフト) で各 sections/ を polish (Discussion / Limitations は新規執筆)
+4. paper_format に従い `paper/main.{tex,md}` を組み立て (sections/ を `\input` or include)
+
+DRAFT.md が **存在しない** 場合は以下の従来挙動 (Phase 7 でゼロから書き始め)。
+
 ### 1. paper_format で雛形分岐
 
 | paper_format | 雛形ファイル |
@@ -37,6 +53,7 @@ description: >
 | `markdown` | `references/paper_skeleton.md` |
 
 雛形を `paper/main.{tex,md}` にコピーし、`{title}`, `{authors}`, `{abstract}` 等を置換。
+DRAFT.md がある場合は雛形は使わず、DRAFT.md の section 構造に従う。
 
 ### 2. 章ごと並列ドラフト
 

@@ -131,7 +131,17 @@ arxiv-mcp-agent への依頼:
 
 **2.4 比較表生成** — `research.literature.matrix` skill が `notes/*.md` を集約し `02_SURVEY/MATRIX.md` を生成 (method × dataset × metric の 1 論文 1 行)。
 
-**2.5 進捗表示** (ゲートなし、自動継続):
+**2.5 論文骨子の早期作成 (v0.13.0+)** — `research.paper.scaffold` skill を invoke:
+- `paper/DRAFT.md` を新規作成 (`draft_md_skeleton.md` 雛形ベース)
+- Abstract `[Background]` + `[Implication]` placeholder
+- Introduction の `1.1 Motivation` (BRIEF.md から) + `1.2 Related Work` (MATRIX.md から、grouped by sub-area, inline citations)
+- `paper/refs.bib` に最小 bibtex (`papers.jsonl` 由来)
+- 充足度: ~55% (`phase_section_map.md` 参照)
+
+これにより **実験前から論文の骨格が見える状態** を作る (paper-first methodology, v0.13.0+)。
+本ステップは任意で skip 可。
+
+**2.6 進捗表示** (ゲートなし、自動継続):
 ```
 [Phase 2/8 完了] 文献サーベイ
   読解した論文: N 本
@@ -185,6 +195,14 @@ arxiv-mcp-agent への依頼:
 
 `STATE.json.last_gate_passed = "G2"`、採択された idea 番号を `STATE.json.adopted_idea_id` に記録。
 
+**3.4 論文骨子の更新 (v0.13.0+)** — `research.paper.scaffold` skill を再 invoke:
+- `## Abstract` の `[Method]` (採択 Idea の `Proposed experiment` から)
+- `## Abstract` の `[Hypothesis (Phase 6 で検証予定)]` (採択 Idea の `Core hypothesis` から)
+- `### 1.3 Contributions` (3-4 bullet、各 hypothesis に紐付け)
+- 充足度: ~70%
+
+**3.4 では `1.1 Motivation` / `1.2 Related Work` は touch しない** (人手 polish 尊重)。
+
 ---
 
 ### Phase 4: Experiment Design
@@ -221,6 +239,14 @@ experiment-designer への依頼:
 ```
 
 `STATE.json.last_gate_passed = "G3"`。
+
+**4.4 論文骨子の更新 (v0.13.0+)** — `research.paper.scaffold` skill を再 invoke:
+- `## 2. Method` (RQ → Hypotheses → Factor Matrix → primary/sanity metric → statistical test)
+- `### 3.1 Setup` (datasets / models / decoding / prompt template / compute budget)
+- `### 3.2 Baselines` (baseline list with refs to refs.bib)
+- 充足度: ~85%
+
+これで `## 3.3 Results` 以外の主要 section が揃う。**実験前に reviewer に見せれば 80% コメント可能** な品質。
 
 ---
 
@@ -273,12 +299,18 @@ experiment-designer への依頼:
 - primary metric が予測と大きく乖離 → Phase 5 に戻る (`CHANGELOG.md` に記録)
 - 全 ablation で有意差なし → null result も成果物として Phase 7 へ進む (negative result paper)
 
-**6.4 進捗表示**:
+**6.4 論文骨子の更新 (v0.13.0+)** — `research.paper.scaffold` skill を再 invoke:
+- `### 3.3 Results` を `06_RESULTS.md` から書く (preliminary、Phase 7 で polish)
+- `## Abstract` の `[Hypothesis (Phase 6 で検証予定)]` を `[Result]` に置換 (実測値 + 統計検定の閾値)
+- 充足度: ~95%
+
+**6.5 進捗表示**:
 ```
 [Phase 6/8 完了] Run & Analysis
   完了 run: N (failed: M)
   primary metric 結果: {summary}
-  次: Phase 7 (論文ドラフト)
+  paper/DRAFT.md 充足度: ~95%
+  次: Phase 7 (論文ドラフト最終仕上げ)
 ```
 
 ---

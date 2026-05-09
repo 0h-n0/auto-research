@@ -472,6 +472,54 @@ bash scripts/cleanup_checkpoints.sh <slug> --apply --keep-best
 `--keep-best` protects the checkpoint of the run with the highest primary metric.
 Spec: `skills/auto-research/references/data_lineage.md` ("Retention 強制" / "Publishing & Archival").
 
+## Paper-First Methodology (v0.13.0+)
+
+Encodes the seasoned-researcher heuristic of **starting to write the paper (especially Abstract and Introduction) before running experiments**. The new `research.paper.scaffold` skill is invocable from **Phase 2 (after the literature survey)** onwards and grows a single living document `paper/DRAFT.md` as the project progresses.
+
+### Phase × DRAFT.md fill rate
+
+| Phase done | What gets written | Fill rate |
+|-----------|-------------------|-----------|
+| Phase 2 (Survey) | Abstract `[Background]` / `[Implication]` placeholders + Intro Motivation + **Related Work (with citations)** + refs.bib | **55%** |
+| Phase 3 (Idea) | + Abstract `[Method]` `[Hypothesis]` + Intro Contributions (3-4 bullets) | **70%** |
+| Phase 4 (Plan) | + Method + Setup + Baselines | **85%** |
+| Phase 6 (Run) | + Results table + Abstract `[Hypothesis]→[Result]` rewrite | **95%** |
+| Phase 7 (paper.draft) | Discussion + Limitations + terminology unification + LaTeX build + DOI completion | **100%** |
+
+### Hypothesis-driven Abstract
+
+```markdown
+[Background] Domain context + existing methods' limitation (2-3 sentences)
+[Method] Core of our proposed approach (3-5 sentences)
+[Hypothesis (to be verified at Phase 6)] Falsifiable prediction + statistical threshold (1-2 sentences)
+[Implication (if verified)] Implication for the research community + open questions (2-3 sentences)
+```
+
+After Phase 6, the `[Hypothesis]` block is replaced with measured `[Result]`.
+
+### Related Work paragraph
+
+Auto-generated from `02_SURVEY/MATRIX.md` by sub-area grouping. Each paper is summarized in 1-2 sentences with inline `\cite{}`. The paragraph ends with a **"Position of our work"** synthesis that pins down the contribution explicitly. Quote rules follow `responsible_research.md` (≤ 2-sentence verbatim, no commercial-journal PDF caching).
+
+### Quick start
+
+`research.paper.scaffold` is **automatically dispatched** at the end of Phase 2 / 3 / 4 / 6 by the auto-research workflow, but you can also call it manually:
+
+```text
+> "Use research.paper.scaffold to refresh the paper draft for <slug>"
+```
+
+It is idempotent — re-running won't damage prior content.
+The **agent-managed marker** (`<!-- agent-managed:Phase=N -->`) protects sections under human revision; deleting the marker tells the skill to leave that section alone.
+
+### Backward compatibility
+
+- Projects that don't invoke `paper.scaffold` keep using `research.paper.draft` (Phase 7) as before
+- `paper.draft` (Phase 7) **uses `paper/DRAFT.md` if present, otherwise falls back to `paper_skeleton.{md,tex}`**
+- Existing v0.1.0+ projects can adopt `paper.scaffold` retroactively (idempotent)
+
+Spec: `skills/research.paper.scaffold/SKILL.md` and `references/phase_section_map.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.
@@ -525,6 +573,7 @@ Invoke them through Claude Code, e.g. "Use research.cross.compare to compare `<s
 | `research.publish` | HF Hub + Zenodo upload + DOI + `PUBLICATION.md` (v0.6.0+) |
 | `research.compute.shop` | Ranked GPU provider recommendations from an 18-provider catalog (commercial / marketplace / free / academic) (v0.8.0+) |
 | `research.autonomous.tinker` | karpathy-inspired autonomous tinker mode — Phase 5-6 alt where the agent iteratively edits a single `tinker/train.py` under fixed wall-clock budget to minimize `val_bpb` (v0.9.0+) |
+| `research.paper.scaffold` | Paper-first early scaffold (v0.13.0+) — invocable from Phase 2 onward, builds `paper/DRAFT.md` as a living document with hypothesis-driven Abstract and citation-backed Introduction |
 
 ### Subagents
 

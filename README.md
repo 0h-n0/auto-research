@@ -440,6 +440,58 @@ bash scripts/cleanup_checkpoints.sh <slug> --apply --keep-best
 `--keep-best` は primary metric 最大の succeeded run の checkpoint を保護します。
 詳細: `skills/auto-research/references/data_lineage.md` の "Retention 強制" / "Publishing & Archival" 節。
 
+## Paper-First Methodology (v0.13.0+)
+
+熟練研究者の暗黙知「**論文 (特に Abstract と Introduction) を実験前から書き始める**」を体現する仕組み。
+v0.13.0 の `research.paper.scaffold` skill は **Phase 2 (literature survey 完了後)** から呼べて、
+単一の living document `paper/DRAFT.md` を Phase 進行に合わせて上書き拡張します。
+
+### Phase × DRAFT.md 充足度
+
+| Phase done | 主に書かれる section | 充足度 |
+|-----------|---------------------|--------|
+| Phase 2 (Survey) | Abstract `[Background]` / `[Implication]` placeholder + Intro Motivation + **Related Work (引用付き)** + refs.bib | **55%** |
+| Phase 3 (Idea) | + Abstract `[Method]` `[Hypothesis]` + Intro Contributions (3-4 bullets) | **70%** |
+| Phase 4 (Plan) | + Method section + Setup + Baselines | **85%** |
+| Phase 6 (Run) | + Results table + Abstract `[Hypothesis]→[Result]` 置換 | **95%** |
+| Phase 7 (paper.draft) | Discussion + Limitations + 用語統合 + LaTeX 化 + DOI 補完 | **100%** |
+
+### Hypothesis-driven Abstract
+
+```markdown
+[Background] LLM evaluation 領域の問題と既存手法の限界 (2-3 文)
+[Method] 我々が提案する手法の核 (3-5 文)
+[Hypothesis (Phase 6 で検証予定)] falsifiable な予測 + 統計的閾値 (1-2 文)
+[Implication (検証成立時)] 研究コミュニティへの含意と次の問い (2-3 文)
+```
+
+Phase 6 完了後、`[Hypothesis]` ブロックは実測値の `[Result]` に置換されます。
+
+### Related Work paragraph
+
+`02_SURVEY/MATRIX.md` から sub-area グループ化、各 paper を 1-2 文で要約 + inline `\cite{}` 付き。
+末尾に **"Position of our work"** paragraph を必ず入れて貢献位置を明示。
+引用は `responsible_research.md` 準拠 (≤ 2 文 verbatim、商用 PDF キャッシュ禁止)。
+
+### Quick start
+
+`research.paper.scaffold` は `auto-research` ワークフローが Phase 2/3/4/6 末尾で **自動 dispatch**
+しますが、手動でも:
+
+```text
+> 「research.paper.scaffold で <slug> の論文骨子を更新」
+```
+
+idempotent なので何度呼んでも問題ありません。
+**agent-managed marker** (`<!-- agent-managed:Phase=N -->`) で人手編集を保護、削除すると skip + warning。
+
+### 後方互換
+
+- 既存プロジェクトで paper.scaffold を呼ばない → これまで通り Phase 7 で `research.paper.draft` が単独動作
+- `paper.draft` (Phase 7、既存) は **DRAFT.md があれば使う、なければ既存挙動** (paper_skeleton から開始)
+
+詳細: `skills/research.paper.scaffold/SKILL.md` および `references/phase_section_map.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。
@@ -544,6 +596,7 @@ bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
 | `research.compute.shop` | GPU 提供元のランク推奨 (18 provider catalog、商用 / marketplace / free / academic) (v0.8.0+) |
 | `research.autonomous.tinker` | karpathy 流の autonomous tinker mode (Phase 5-6 alt: agent が train.py を反復編集、固定 wall-clock budget で val_bpb 最小化) (v0.9.0+) |
 | `research.autonomous.swarm` | N agents 並列の research org mode (v0.10.0+、5 戦略 / orchestrator 集約 / cross-pollination 制御) |
+| `research.paper.scaffold` | Phase 2+ から呼べる早期論文骨子 builder (v0.13.0+、hypothesis-driven Abstract + 引用付き Introduction を実験前から育てる、living paper/DRAFT.md) |
 
 ### Subagents
 

@@ -7,6 +7,37 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-05-10 — Paper-First Methodology
+
+### Added (Skill)
+- **`research.paper.scaffold` skill** (`skills/research.paper.scaffold/`):
+  Phase 2 から呼べる **早期論文骨子 builder**。単一 living document `paper/DRAFT.md` を Phase
+  進行に合わせて上書き拡張、Abstract と Introduction を実験前から書く paper-first methodology を実現。
+  - **Hypothesis-driven Abstract** (4 ブロック: Background / Method / Hypothesis / Implication)
+  - **Introduction** (Motivation / Related Work / Contributions の 3 sub-section)
+  - **Related Work**: MATRIX.md から sub-area グループ化 + inline `\cite{}` + Position of our work
+  - **bibtex 命名**: `firstauthor + year + firstword`、衝突時 fallback
+  - **agent-managed marker** で人手編集を保護
+  - 充足度: Phase 2=55%, Phase 3=70%, Phase 4=85%, Phase 6=95%, Phase 7=100%
+  - SoT: `phase_section_map.md`
+
+### Changed
+- `auto-research/SKILL.md`: Phase 2/3/4/6 末尾で paper.scaffold を自動 dispatch (任意で skip 可)
+- `research.paper.draft/SKILL.md`: DRAFT.md detection 追加。存在すれば入力に使う、なければ既存挙動
+
+### Added (Tests)
+- **`tests/test_paper_scaffold.sh`** (39 sub-tests): file presence + section headers +
+  template markers + phase_section_map / 全 phase 行 + bibtex 命名規則 +
+  responsible_research cross-ref + paper.draft DRAFT.md detection +
+  auto-research SKILL の dispatch 言及 + Phase 2 earliest invoke
+- 全テスト 13 → **14**
+
+### Notes
+- **完全 後方互換**: paper.scaffold は **任意**、既存ワークフローはそのまま動作
+- **引用ルール**: `responsible_research.md` 準拠 (≤ 2 文 verbatim、商用 PDF キャッシュ禁止、AI Use Disclosure 必須)
+- **agent-managed marker**: 人手編集を保護、削除時は skip + warning
+- 多言語対応: 現状英語前提、日本語論文は将来 (v1.0+)
+
 ## [0.12.0] - 2026-05-10 — Strategy × Domain Adapters + nlp-classification
 
 ### Added (Adapter SoT)
