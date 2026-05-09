@@ -7,6 +7,18 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-09
+
+### Documentation
+- README.md: v0.2.0 で追加した next-step trailer の解説節 (例 + 特殊状態の挙動表) を追加。
+  v0.2.0 を README 未更新のまま出してしまった (doc drift) ので follow-up patch として補完。
+- RELEASING.md: pre-release checklist に「ドキュメントが新バージョンと同期している」
+  ブロックを追加。新機能を README に反映せずに release するのを禁止する旨を明記。
+
+### Notes
+- code 変更なし。doc-only release。
+- 今後は機能追加 (MINOR) を出す前に、その変更点が README にも書かれていることを必ず確認する。
+
 ## [0.2.0] - 2026-05-09
 
 ### Added

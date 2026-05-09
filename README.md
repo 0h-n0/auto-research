@@ -159,6 +159,37 @@ find ~/.claude/skills ~/.claude/agents ~/.claude/commands -lname "*my-plugins/au
 # 現在の Phase / 直近 run / 次のアクション
 ```
 
+### Next-Step Trailer (v0.2.0+)
+
+各コマンドの完走時に、現在地と次のアクションを示す **trailer** が必ず出ます。
+`STATE.json` から動的に組み立てられ、進捗・ゲート通過状況・推奨次コマンド・代替が一目で分かります。
+
+```
+─────────────────────────────────────
+[Phase 4/8] ●●●●○○○○  G3 ✓
+
+→ 推奨: /auto-research:research-experiment <slug>
+  (Scaffold + Baseline TDD)
+
+  代替:
+   ・ /auto-research:research-status <slug>   進捗確認
+   ・ /auto-research:research-design <slug>   G3 やり直し
+─────────────────────────────────────
+```
+
+特殊状態にも対応:
+
+| 状態 | trailer の挙動 |
+|------|---------------|
+| 通常進行 | 推奨: 次フェーズのコマンド + 代替 (status / 前フェーズやり直し) |
+| sanity 失敗 (Phase 6 → 5 rollback) | 推奨: `research-experiment` 再実行 + 失敗詳細用の `status` |
+| G4 致命的レビュー指摘 | 推奨: rollback target phase の re-entry |
+| 複数 active project | slug 指定を促し `research-status` を推奨 |
+| プロジェクト完了 (G4 ✓ + `completed_at`) | 推奨: 新規テーマで `research-start` |
+| `STATE.json` 不在 (新規ユーザー) | 推奨: `research-start "<topic>"` |
+
+表示仕様の単一ソースは `skills/auto-research/references/next_steps_template.md`。
+
 ## ワークフロー (8 phases / 4 gates)
 
 | # | Phase | 主担当 | 主成果物 | Gate |

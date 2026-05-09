@@ -30,13 +30,29 @@
     [ ] .claude-plugin/marketplace.json の metadata.version
     [ ] .claude-plugin/marketplace.json の plugins[0].version
 [ ] `jq -r '.version' .claude-plugin/plugin.json` 等で 3 箇所一致を確認
+
+[ ] **ドキュメントが新バージョンと同期している (必須)**:
+    [ ] README.md に新機能・変更点が反映されている
+        (新コマンド / 新 skill / 新 frontmatter / 新オプションなど、
+         ユーザーが「このバージョンで何ができるか」を README だけで把握できるか)
+    [ ] README.md のクイックスタート / インストール / 出力例
+        (ASCII / コードブロック) が現状の挙動と一致している
+    [ ] CHANGELOG.md に当該バージョンのエントリがある (上で確認済み)
+    [ ] 必要なら RELEASING.md / 各 SKILL.md / commands/*.md / docs/ も更新
+    [ ] 「v0.X.Y で追加された機能だが README に書かれていない」状態を作らない
+        (ドリフトを残したまま release しない)
+
 [ ] PII / 秘密情報スキャン (kbu94981, /home/<user>/, secrets, tokens など)
 [ ] hooks/post-experiment-log.sh の bash -n 構文チェック
 [ ] scripts/init_state.sh のべき等性確認 (2 回実行)
 [ ] JSON manifests の jq -e . 検証
-[ ] README.md の「インストール」「クイックスタート」手順が有効か手動確認
 [ ] 主要 skill / agent / command が壊れていないか smoke test
 ```
+
+> **ドキュメント同期は妥協禁止**。ユーザー (`0h-n0`) が 2026-05-09 に明文化を依頼。
+> 新機能を出して README に書かないのは「リリース未完了」と扱う。
+> もし release 後に doc 漏れに気付いた場合は、即時 PATCH bump を切って
+> README/RELEASING/CHANGELOG だけ追従させる release を別途出す。
 
 ## Release Steps
 
