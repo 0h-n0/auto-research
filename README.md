@@ -252,6 +252,64 @@ GPU 単価表は `skills/research.cost.estimate/references/gpu_price_table.json`
 
 詳細: `skills/research.experiment.scaffold/references/observability_setup.md`
 
+## Autonomous Tinker Mode (v0.9.0+)
+
+[karpathy/autoresearch](https://github.com/karpathy/autoresearch) (Andrej Karpathy, 2026, MIT) に着想を得た **Phase 5-6 alt mode**。
+Phase 4 G3 通過時に `04_EXPERIMENT_PLAN.md` で `mode: tinker` を選ぶと、agent が `tinker/train.py` 1 ファイルだけを反復編集し、固定 wall-clock budget (default 5 分) で nanochat-style な single-GPU LLM 訓練を **overnight 自律探索** します。
+
+### 設計の核
+
+1. **Agent は `tinker/train.py` のみ編集** (model / optimizer / hparams 全部 fair game)
+2. **Fixed wall-clock budget per iteration** (`TINKER_BUDGET_SECONDS=300`、改造内容に依らず実験直接比較可、~12 iter/h、~100 iter overnight)
+3. **単一比較メトリック `val_bpb`** (vocab-size-independent)
+4. **`program.md` = agent への指示書** (human iterable、agent は読み込みのみ)
+5. **Train → measure → keep/discard → repeat** の autonomous loop
+
+### Quick start
+
+```bash
+# 1. tinker scaffold (Phase 5 で skill が自動展開)
+> 「research.autonomous.tinker skill で <slug> に tinker mode を scaffold して」
+
+# 2. データ準備 (1 回だけ)
+cd .research/<slug>/tinker && uv sync && uv run python prepare.py
+
+# 3. ベースライン 1 iter (sanity check)
+bash scripts/tinker_run.sh <slug>
+
+# 4. autonomous loop (agent が program.md を読んで反復編集 → tinker_run.sh)
+> 「program.md に従って overnight loop を回して」
+```
+
+各 iter は:
+- `tinker/RESULTS.md` に行追加 (human-readable)
+- `06_RUNS/<run_id>/events.jsonl` に `event=tinker.iteration` を 1 行追加 (CLAUDE.md 規約準拠)
+- 改善時のみ `tinker/history/iter_<N>.py` に train.py を snapshot + `tinker/BEST.json` 更新
+
+### 安全機構
+
+`scripts/tinker_run.sh` の pre-flight:
+- train.py の Python syntax 検証
+- forbidden import detection (`transformers` / `tokenizers` / `sentence_transformers` を block — pretrained 流入防止)
+- timeout (`TINKER_BUDGET_SECONDS` 経過で SIGTERM、10 秒後 SIGKILL)
+- OOM / divergence / runtime error は events.jsonl に `tinker.diverged` で記録
+
+### 小型化ガイド (CPU/MPS/RTX-3090 でも動かしたい)
+
+`skills/research.autonomous.tinker/references/tinker_loop.md` の "Small-compute guide" 節:
+
+| 環境 | DEPTH | MAX_SEQ_LEN | TOTAL_BATCH_SIZE | dataset | budget |
+|------|-------|-------------|------------------|---------|--------|
+| CPU/MPS smoke | 2 | 128 | 2^10 | TinyStories subset | 60 s |
+| RTX-3090 (24GB) | 4 | 512 | 2^14 | TinyStories full | 300 s |
+| A100-80GB / H100 | 8 | 1024 | 2^16 | FineWeb-edu | 300 s |
+
+詳細: `skills/research.autonomous.tinker/SKILL.md` および `references/tinker_loop.md`
+
+### Acknowledgement
+
+本 skill の概念 (single-file edit autonomy / fixed wall-clock budget / val_bpb / `program.md`) は karpathy/autoresearch のアイディア。本プラグインはそれを **8-phase ワークフローに統合する形で自前再実装** (コードの verbatim コピーはなし)。詳細は `skills/research.autonomous.tinker/SKILL.md` の Acknowledgement 節。
+
 ## Publishing & Archival (v0.6.0+)
 
 Phase 8 G4 通過後、`research.publish` skill で公開先を選んで一括 upload + DOI 取得:
@@ -394,6 +452,7 @@ bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
 | `research.cost.estimate` | run 単位 USD 試算 + project 累積コスト + budget watch (v0.5.0+) |
 | `research.publish` | HF Hub Datasets / Zenodo upload + DOI 取得 + PUBLICATION.md 生成 (v0.6.0+) |
 | `research.compute.shop` | GPU 提供元のランク推奨 (18 provider catalog、商用 / marketplace / free / academic) (v0.8.0+) |
+| `research.autonomous.tinker` | karpathy 流の autonomous tinker mode (Phase 5-6 alt: agent が train.py を反復編集、固定 wall-clock budget で val_bpb 最小化) (v0.9.0+) |
 
 ### Subagents
 

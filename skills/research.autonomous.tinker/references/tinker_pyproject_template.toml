@@ -1,0 +1,46 @@
+[project]
+name = "tinker"
+version = "0.1.0"
+description = "Autonomous tinker mode (auto-research v0.9.0+) — single-GPU GPT training driven by an autonomous agent."
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+authors = [{ name = "auto-research user" }]
+
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# HuggingFace datasets is needed for the default TinyStories / FineWeb-edu dataset fetch.
+# CI smoke tests can omit this and prepare.py falls back to a synthetic offline string.
+data = [
+    "datasets>=3.0",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.7",
+]
+
+# DO NOT add any of the following — they would break the autonomy contract:
+#   - transformers (pretrained models are forbidden)
+#   - tokenizers (pretrained tokenizers are forbidden; we train our own BPE)
+#   - any other foundation-model SDKs
+#
+# If you need them for paper drafting / publication, do that work outside `tinker/`
+# in the parent uv project (e.g. `code/`).
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = []  # tinker is a script-only project; no installable package
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]

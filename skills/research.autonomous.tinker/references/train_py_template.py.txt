@@ -1,0 +1,290 @@
+"""tinker/train.py — minimal single-GPU GPT trainer for autonomous tinker mode.
+
+This file is the SINGLE FILE you (the agent) may edit. Everything is fair game:
+architecture, optimizer, hyperparameters, batch size, schedule, init, etc.
+
+Hard rules:
+  - Do NOT modify prepare.py or data/.
+  - Do NOT use external pretrained models or pretrained tokenizers.
+  - Do NOT touch the validation split.
+  - Wall-clock budget is enforced externally via `timeout` (TINKER_BUDGET_SECONDS).
+  - Always write tinker/result.json with at least:
+      {"val_bpb": <float|null>, "wall_time_s": <float>, "n_iters": <int>, "diverged": <bool>}
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+  Self-authored minimal GPT for the auto-research plugin (v0.9.0+).
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import time
+from dataclasses import dataclass, asdict
+from pathlib import Path
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+# ---------- Config (agent may edit) ----------
+
+@dataclass
+class Config:
+    # Architecture
+    vocab_size: int = 4096
+    depth: int = 4
+    n_heads: int = 6
+    d_model: int = 384
+    mlp_ratio: int = 4
+    dropout: float = 0.0
+
+    # Sequence
+    max_seq_len: int = 512
+
+    # Optimization
+    lr: float = 3e-4
+    weight_decay: float = 0.1
+    betas: tuple = (0.9, 0.95)
+    grad_clip: float = 1.0
+    warmup_iters: int = 100
+    min_lr_ratio: float = 0.1  # cosine min = lr * min_lr_ratio
+
+    # Batch
+    device_batch_size: int = 32
+    grad_accum_steps: int = 1
+    total_batch_size: int = 32 * 1 * 512  # device_batch_size * grad_accum_steps * max_seq_len (sanity)
+
+    # Determinism
+    seed: int = 42
+
+    # Eval
+    eval_iters: int = 50
+
+    # Wall-clock budget (overridable from env)
+    budget_seconds: int = int(os.environ.get("TINKER_BUDGET_SECONDS", 300))
+
+
+# ---------- Data ----------
+
+def load_split(name: str, max_seq_len: int) -> torch.Tensor:
+    """Load tokenized data prepared by prepare.py. Returns 1D LongTensor of token ids."""
+    data_dir = Path(__file__).parent / "data"
+    arr = np.fromfile(data_dir / f"{name}.bin", dtype=np.uint16).astype(np.int64)
+    return torch.from_numpy(arr)
+
+
+def get_batch(tokens: torch.Tensor, batch_size: int, seq_len: int, device: str, gen: torch.Generator):
+    """Sample random contiguous spans for a batch."""
+    n = tokens.size(0)
+    idx = torch.randint(0, n - seq_len - 1, (batch_size,), generator=gen)
+    x = torch.stack([tokens[i : i + seq_len] for i in idx])
+    y = torch.stack([tokens[i + 1 : i + 1 + seq_len] for i in idx])
+    return x.to(device, non_blocking=True), y.to(device, non_blocking=True)
+
+
+# ---------- Model ----------
+
+class CausalSelfAttention(nn.Module):
+    def __init__(self, cfg: Config):
+        super().__init__()
+        assert cfg.d_model % cfg.n_heads == 0
+        self.n_heads = cfg.n_heads
+        self.head_dim = cfg.d_model // cfg.n_heads
+        self.qkv = nn.Linear(cfg.d_model, 3 * cfg.d_model, bias=False)
+        self.proj = nn.Linear(cfg.d_model, cfg.d_model, bias=False)
+        self.dropout = cfg.dropout
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        B, T, C = x.shape
+        q, k, v = self.qkv(x).chunk(3, dim=-1)
+        q = q.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
+        # PyTorch SDPA picks flash/eager backend automatically
+        y = F.scaled_dot_product_attention(q, k, v, is_causal=True, dropout_p=self.dropout if self.training else 0.0)
+        y = y.transpose(1, 2).contiguous().view(B, T, C)
+        return self.proj(y)
+
+
+class MLP(nn.Module):
+    def __init__(self, cfg: Config):
+        super().__init__()
+        hidden = cfg.mlp_ratio * cfg.d_model
+        self.fc1 = nn.Linear(cfg.d_model, hidden, bias=False)
+        self.fc2 = nn.Linear(hidden, cfg.d_model, bias=False)
+        self.drop = nn.Dropout(cfg.dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.drop(self.fc2(F.gelu(self.fc1(x))))
+
+
+class Block(nn.Module):
+    def __init__(self, cfg: Config):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(cfg.d_model)
+        self.attn = CausalSelfAttention(cfg)
+        self.ln2 = nn.LayerNorm(cfg.d_model)
+        self.mlp = MLP(cfg)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.attn(self.ln1(x))
+        x = x + self.mlp(self.ln2(x))
+        return x
+
+
+class GPT(nn.Module):
+    def __init__(self, cfg: Config):
+        super().__init__()
+        self.cfg = cfg
+        self.tok_emb = nn.Embedding(cfg.vocab_size, cfg.d_model)
+        self.pos_emb = nn.Embedding(cfg.max_seq_len, cfg.d_model)
+        self.blocks = nn.ModuleList([Block(cfg) for _ in range(cfg.depth)])
+        self.ln_f = nn.LayerNorm(cfg.d_model)
+        # Tied weights
+        self.head = nn.Linear(cfg.d_model, cfg.vocab_size, bias=False)
+        self.head.weight = self.tok_emb.weight
+        self.apply(self._init_weights)
+
+    @staticmethod
+    def _init_weights(module: nn.Module):
+        if isinstance(module, nn.Linear):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def forward(self, idx: torch.Tensor, targets: torch.Tensor | None = None):
+        B, T = idx.shape
+        pos = torch.arange(0, T, device=idx.device, dtype=torch.long)
+        x = self.tok_emb(idx) + self.pos_emb(pos)[None, :, :]
+        for blk in self.blocks:
+            x = blk(x)
+        x = self.ln_f(x)
+        logits = self.head(x)
+        if targets is None:
+            return logits, None
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+        return logits, loss
+
+
+# ---------- Schedule ----------
+
+def lr_at(step: int, total_steps: int, cfg: Config) -> float:
+    if step < cfg.warmup_iters:
+        return cfg.lr * (step + 1) / cfg.warmup_iters
+    if total_steps <= cfg.warmup_iters:
+        return cfg.lr * cfg.min_lr_ratio
+    progress = (step - cfg.warmup_iters) / max(1, total_steps - cfg.warmup_iters)
+    return cfg.lr * (cfg.min_lr_ratio + (1 - cfg.min_lr_ratio) * 0.5 * (1 + math.cos(math.pi * progress)))
+
+
+# ---------- Eval ----------
+
+@torch.no_grad()
+def eval_val_bpb(model: GPT, val_tokens: torch.Tensor, cfg: Config, device: str) -> float:
+    """Compute validation BPB. log2 of softmax cross entropy, normalized by bytes per token."""
+    model.eval()
+    losses = []
+    gen = torch.Generator().manual_seed(cfg.seed + 1)
+    for _ in range(cfg.eval_iters):
+        x, y = get_batch(val_tokens, cfg.device_batch_size, cfg.max_seq_len, device, gen)
+        _, loss = model(x, y)
+        losses.append(loss.item())
+    nat_per_token = float(np.mean(losses))
+    # bits per token = nat_per_token / ln(2) = nat_per_token * 1.4427
+    bits_per_token = nat_per_token * 1.4426950408889634
+    # bytes_per_token from data manifest if available, else assume 4.0 (common BPE estimate for English)
+    bytes_per_token = 4.0
+    manifest = Path(__file__).parent / "data" / "manifest.json"
+    if manifest.exists():
+        bytes_per_token = json.loads(manifest.read_text()).get("bytes_per_token", 4.0)
+    bpb = bits_per_token / bytes_per_token
+    model.train()
+    return bpb
+
+
+# ---------- Train loop ----------
+
+def main():
+    cfg = Config()
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
+
+    train_tokens = load_split("train", cfg.max_seq_len)
+    val_tokens = load_split("val", cfg.max_seq_len)
+
+    model = GPT(cfg).to(device)
+    if device == "cuda":
+        model = model.to(memory_format=torch.channels_last) if False else model
+    optim = torch.optim.AdamW(model.parameters(), lr=cfg.lr, betas=cfg.betas, weight_decay=cfg.weight_decay)
+
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"# device={device} params={n_params/1e6:.2f}M depth={cfg.depth} d_model={cfg.d_model} budget={cfg.budget_seconds}s")
+
+    # Estimate total steps from budget assuming ~K iter/sec — conservative
+    # We'll just train until time budget; record steps achieved.
+    t0 = time.monotonic()
+    gen = torch.Generator().manual_seed(cfg.seed)
+    step = 0
+    loss_history: list[float] = []
+    diverged = False
+    last_loss = float("inf")
+
+    # Heuristic total_steps for cosine: assume 10 iter/s on mid-tier GPU, scale by budget
+    total_steps_est = max(50, int(cfg.budget_seconds * 10))
+
+    while True:
+        if time.monotonic() - t0 >= cfg.budget_seconds * 0.85:  # leave 15% for eval
+            break
+        lr = lr_at(step, total_steps_est, cfg)
+        for g in optim.param_groups:
+            g["lr"] = lr
+
+        optim.zero_grad(set_to_none=True)
+        for _ in range(cfg.grad_accum_steps):
+            x, y = get_batch(train_tokens, cfg.device_batch_size, cfg.max_seq_len, device, gen)
+            _, loss = model(x, y)
+            (loss / cfg.grad_accum_steps).backward()
+        if math.isnan(loss.item()) or math.isinf(loss.item()):
+            diverged = True
+            break
+        torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
+        optim.step()
+
+        last_loss = float(loss.item())
+        loss_history.append(last_loss)
+        step += 1
+        if step % 50 == 0:
+            print(f"step {step}  loss {last_loss:.4f}  lr {lr:.2e}  t {time.monotonic()-t0:.1f}s")
+
+    val_bpb: float | None
+    try:
+        val_bpb = eval_val_bpb(model, val_tokens, cfg, device) if not diverged else None
+    except Exception as e:
+        print(f"# eval failed: {type(e).__name__}: {e}")
+        val_bpb = None
+
+    wall = time.monotonic() - t0
+    result = {
+        "val_bpb": val_bpb,
+        "wall_time_s": wall,
+        "n_iters": step,
+        "diverged": diverged,
+        "last_train_loss": last_loss,
+        "params_M": round(n_params / 1e6, 3),
+        "device": device,
+        "config": asdict(cfg),
+        "loss_history_len": len(loss_history),
+    }
+    Path("tinker/result.json").parent.mkdir(parents=True, exist_ok=True)
+    Path("tinker/result.json").write_text(json.dumps(result, indent=2))
+    print(f"# done val_bpb={val_bpb} steps={step} wall={wall:.1f}s diverged={diverged}")
+
+
+if __name__ == "__main__":
+    main()

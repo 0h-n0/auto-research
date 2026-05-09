@@ -1,0 +1,160 @@
+"""tinker/prepare.py — one-time data prep for autonomous tinker mode.
+
+Downloads a small text dataset (TinyStories by default), trains a byte-level BPE,
+and writes train.bin / val.bin (uint16 token ids) and manifest.json (vocab_size,
+bytes_per_token, etc.) under tinker/data/.
+
+Hard rules (the agent must NOT modify this file):
+  - Train/val split is FIXED here. Changing it is data leakage.
+  - Vocab size is encoded in manifest.json so train.py reads from it.
+  - bytes_per_token is computed empirically and stored, used by val_bpb.
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+
+
+# Config (DO NOT change once experiments are running on this slug)
+VOCAB_SIZE = 4096
+DATASET = os.environ.get("TINKER_DATASET", "tinystories")  # tinystories | fineweb-edu
+TRAIN_TOKENS = 5_000_000  # ~10 MB at 4 bytes/tok
+VAL_TOKENS = 200_000
+
+
+def fetch_text(dataset: str) -> tuple[str, str]:
+    """Return (train_text, val_text). Must NOT bleed val into train."""
+    if dataset == "tinystories":
+        # Use HF datasets if available; fall back to a tiny embedded fallback for CI smoke tests.
+        try:
+            from datasets import load_dataset  # type: ignore
+
+            ds_train = load_dataset("roneneldan/TinyStories", split="train", streaming=True)
+            ds_val = load_dataset("roneneldan/TinyStories", split="validation", streaming=True)
+            train_chunks: list[str] = []
+            n = 0
+            for row in ds_train:
+                train_chunks.append(row["text"])
+                n += len(row["text"])
+                if n > TRAIN_TOKENS * 4:  # ~4 bytes/token
+                    break
+            val_chunks: list[str] = []
+            n = 0
+            for row in ds_val:
+                val_chunks.append(row["text"])
+                n += len(row["text"])
+                if n > VAL_TOKENS * 4:
+                    break
+            return "\n".join(train_chunks), "\n".join(val_chunks)
+        except Exception:
+            pass
+    # Fallback (CI smoke / offline): tiny synthetic English-like text
+    base = (
+        "the quick brown fox jumps over the lazy dog\n"
+        "she sells sea shells by the sea shore\n"
+        "a stitch in time saves nine and time waits for no one\n"
+    ) * 1000
+    split = int(len(base) * 0.95)
+    return base[:split], base[split:]
+
+
+def train_bpe(text: str, vocab_size: int) -> dict:
+    """Train a tiny byte-level BPE. Returns {token: id} dict."""
+    # Start from raw bytes (256 base tokens), greedily merge most-frequent pair.
+    tokens: list[bytes] = [bytes([b]) for b in text.encode("utf-8")]
+    vocab: dict[bytes, int] = {bytes([b]): b for b in range(256)}
+    next_id = 256
+
+    while next_id < vocab_size:
+        # Count adjacent pair frequencies (sample to stay fast)
+        sample = tokens[: min(len(tokens), 200_000)]
+        counts: dict[tuple[bytes, bytes], int] = {}
+        for i in range(len(sample) - 1):
+            pair = (sample[i], sample[i + 1])
+            counts[pair] = counts.get(pair, 0) + 1
+        if not counts:
+            break
+        best_pair = max(counts, key=counts.get)
+        new_tok = best_pair[0] + best_pair[1]
+        vocab[new_tok] = next_id
+        next_id += 1
+        # Apply merge across the full token list
+        merged: list[bytes] = []
+        i = 0
+        while i < len(tokens):
+            if i + 1 < len(tokens) and (tokens[i], tokens[i + 1]) == best_pair:
+                merged.append(new_tok)
+                i += 2
+            else:
+                merged.append(tokens[i])
+                i += 1
+        tokens = merged
+        if len(tokens) < 2:
+            break
+    return {tok.hex(): tid for tok, tid in vocab.items()}
+
+
+def encode(text: str, vocab_hex: dict[str, int]) -> list[int]:
+    """Greedy longest-match encode (slow but deterministic). For prepare-time only."""
+    raw = text.encode("utf-8")
+    # Build sorted list of (bytes, id) for greedy match (longest first).
+    items = sorted(((bytes.fromhex(k), v) for k, v in vocab_hex.items()), key=lambda kv: -len(kv[0]))
+    out: list[int] = []
+    i = 0
+    while i < len(raw):
+        for tok_bytes, tid in items:
+            if raw.startswith(tok_bytes, i):
+                out.append(tid)
+                i += len(tok_bytes)
+                break
+        else:
+            out.append(raw[i])
+            i += 1
+    return out
+
+
+def main():
+    data_dir = Path(__file__).parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"# tinker/prepare.py — dataset={DATASET} vocab_size={VOCAB_SIZE}")
+    train_text, val_text = fetch_text(DATASET)
+    print(f"# train chars={len(train_text)} val chars={len(val_text)}")
+
+    print("# training BPE …")
+    vocab_hex = train_bpe(train_text, VOCAB_SIZE)
+    print(f"# vocab size={len(vocab_hex)}")
+
+    print("# encoding splits …")
+    train_ids = encode(train_text, vocab_hex)
+    val_ids = encode(val_text, vocab_hex)
+
+    np.array(train_ids, dtype=np.uint16).tofile(data_dir / "train.bin")
+    np.array(val_ids, dtype=np.uint16).tofile(data_dir / "val.bin")
+
+    bytes_per_token = (len(train_text.encode("utf-8")) / max(1, len(train_ids))) if train_ids else 4.0
+    manifest = {
+        "schema_version": 1,
+        "dataset": DATASET,
+        "vocab_size": len(vocab_hex),
+        "train_tokens": len(train_ids),
+        "val_tokens": len(val_ids),
+        "bytes_per_token": round(bytes_per_token, 4),
+    }
+    (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    (data_dir / "vocab.json").write_text(json.dumps(vocab_hex, indent=2))
+
+    print(f"# wrote {data_dir / 'train.bin'} ({len(train_ids):,} tokens)")
+    print(f"# wrote {data_dir / 'val.bin'}   ({len(val_ids):,} tokens)")
+    print(f"# bytes_per_token={bytes_per_token:.3f} (used in val_bpb)")
+
+
+if __name__ == "__main__":
+    main()

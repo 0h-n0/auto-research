@@ -44,6 +44,18 @@
 |-------|----------------------|------|----------|-----|
 | 4 (Experiment Design) 後段 | `research.compute.shop` skill | gpu_type / gpu_count / duration_h (`04_EXPERIMENT_PLAN.md` の compute estimate から) | `.research/<slug>/COMPUTE_PROCUREMENT.md` (provider ランク) | agent ではなく skill。`experiment-designer` が出した compute 見積を受けて借りる先を決める |
 
+### Phase 5-6 — Autonomous Tinker Mode alt (v0.9.0+)
+
+`04_EXPERIMENT_PLAN.md` の `mode: tinker` 選択時、Phase 5-6 はこの alt path を取る (通常 ablation 設計 path とは別ルート):
+
+| Phase | dispatch される skill | 入力 | 期待出力 | 注 |
+|-------|----------------------|------|----------|-----|
+| 5 (Scaffold alt) | `research.autonomous.tinker` skill | `04_EXPERIMENT_PLAN.md` mode=tinker | `.research/<slug>/tinker/{train.py, prepare.py, program.md, pyproject.toml, data/, history/}` | `research.experiment.scaffold` の代わりに dispatch |
+| 6 (Run alt, agent loop) | (no agent — autonomous loop in main thread) | `program.md` をエージェントが読む、`scripts/tinker_run.sh` を反復起動 | `tinker/RESULTS.md`, `tinker/BEST.json`, `06_RUNS/<run_id>/events.jsonl` (event=tinker.iteration) | `research.experiment.run` を使わず `tinker_run.sh` が直接 run を駆動 |
+| 7 (Paper) | `research.paper.draft` skill | `tinker/RESULTS.md` + best `train.py` + `BEST.json` | "tinker journal" 形式のドラフト | 通常 path と同じ skill を使う (入力ソースが違うだけ) |
+
+karpathy/autoresearch (March 2026, MIT) の単一ファイル編集自律ループ概念を、本プラグインの 8-phase 規律に統合した形。詳細は `skills/research.autonomous.tinker/SKILL.md`。
+
 ## 重複境界 (anti-pattern)
 
 各 agent が「自分の領分」を超えそうな場合、ここに従って handoff する:

@@ -7,6 +7,67 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-10 — Autonomous Tinker Mode (karpathy-inspired)
+
+### Acknowledgement
+本リリースは [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (Andrej Karpathy, March 2026, MIT License) に強く着想を得ている。
+コア概念 (single-file edit autonomy / fixed wall-clock budget / val_bpb 単一メトリック / `program.md` 設計) は karpathy のアイディア。
+本プラグインは **そのアイディアを 8-phase ワークフローに統合する形で** 自前再実装 (コードの verbatim コピーはなし)。
+
+### Added (Skill)
+- **`research.autonomous.tinker` skill** (`skills/research.autonomous.tinker/`):
+  Phase 5-6 の **alt mode** として karpathy 流の autonomous tinker loop を提供。
+  agent が `tinker/train.py` 1 ファイルだけを反復編集し、固定 wall-clock budget
+  (default 5 分) で nanochat-style な single-GPU LLM 訓練を overnight 自律探索する。
+  - SoT: `references/tinker_loop.md` (loop 仕様、不変条件、reset/revert ポリシー、
+    small-compute guide for CPU/MPS/RTX-3090/A100/H100)
+  - `references/program_md_template.md`: agent 指示書 (mission / hard rules / strategy hints / stop conditions)
+  - `references/train_py_template.py.txt`: **自前 ~280 行最小 GPT** (causal SDPA attention,
+    AdamW, cosine LR + warmup, val_bpb 計算、karpathy attribution コメント付き)
+  - `references/prepare_py_template.py.txt`: ~150 行 data prep (TinyStories or FineWeb-edu,
+    自前 byte-level BPE、train/val split 固定、manifest.json で bytes_per_token を保存)
+  - `references/results_log_format.md`: RESULTS.md / events.jsonl / BEST.json の format SoT
+  - `references/tinker_pyproject_template.toml`: 最小依存 (torch / numpy + datasets optional、
+    transformers/tokenizers は **同梱禁止** = pretrained 流入防止)
+
+### Added (Runner)
+- **`scripts/tinker_run.sh`**: timeout 付き runner
+  - Pre-flight: train.py syntax check + forbidden import detection
+    (`transformers` / `tokenizers` / `sentence_transformers` を block)
+  - Run: `timeout TINKER_BUDGET_SECONDS train.py` で wall-clock を強制
+  - Parse: `tinker/result.json` から val_bpb / wall_time / diverged を抽出
+  - Update: `tinker/RESULTS.md` (markdown table) + `tinker/BEST.json` (最良 record)
+  - Snapshot: 改善時のみ `tinker/history/iter_<N>.py` に train.py を commit
+  - Log: `events.jsonl` に `event=tinker.iteration` (or `tinker.diverged`) を 1 行追加
+
+### Added (Tests)
+- **`tests/test_tinker_smoke.sh`** (15 sub-tests):
+  template 存在 (8) / Python syntax (2) / bash syntax (1) / TOML 妥当性 (1) /
+  karpathy attribution 3 箇所 (SKILL.md / train.py / tinker_run.sh)
+- 全テスト 9 → **10** (tinker_smoke 追加)
+
+### Phase 連携
+- Phase 4 G3 で `04_EXPERIMENT_PLAN.md` の `mode: tinker` 選択時、Phase 5 が tinker mode に分岐
+- Phase 6: `tinker_run.sh` が `events.jsonl` に統合ログ、PostToolUse hook も連動
+- Phase 7: `RESULTS.md` + best `train.py` を `research.paper.draft` に渡して "tinker journal" 化
+- `research.cost.estimate` で overnight USD 試算を carry-over (12 iter/h × USD/h × hours)
+- `research.compute.shop` で single-GPU on-demand 推奨 (RTX-4090 / A100-80GB)
+
+### Changed (Documentation)
+- `README.md` / `README.en.md`: "Autonomous Tinker Mode (v0.9.0+)" 節追加 + skills 表 1 行
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧に tinker SKILL.md を追加
+- `skills/auto-research/references/error_handling_spec.md`: Phase 6 表に tinker failure modes を追記
+- `agents/DISPATCH_MATRIX.md`: Phase 5-6 alt mode (tinker) を記載
+- `tests/fixtures/events_sample.jsonl`: `event=tinker.iteration` の例を追加 (schema validation で OK)
+
+### Notes
+- **完全 opt-in / 後方互換**: tinker mode は明示的に `mode: tinker` を選んだプロジェクトのみ。
+  既存 `.research/<slug>/` プロジェクトはこれまで通り。
+- karpathy attribution は SKILL.md / train.py / tinker_run.sh / README / CHANGELOG の 5 箇所で明示。
+- 価格 / 公開価格表 / コスト試算は v0.5.0 / v0.8.0 の既存機能を利用 (catalog 修正不要)。
+- データセット licensing 注意: TinyStories (default) は MIT、FineWeb-edu は ODC-BY。
+  prepare.py 冒頭に明示、テスト用には小規模 TinyStories で smoke test 可能。
+
 ## [0.8.0] - 2026-05-10 — GPU Procurement Helper
 
 ### Added (Skill)

@@ -257,6 +257,63 @@ bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
 - Your real contract pricing (kept private) goes in `.research/<slug>/cost_overrides.json` (git-ignore is recommended).
 - Catalog SoT: `skills/research.compute.shop/references/gpu_providers.json`. The skill notes when `updated_at` is 90+ days old and warns past 180 days.
 
+## Autonomous Tinker Mode (v0.9.0+)
+
+Inspired by [karpathy/autoresearch](https://github.com/karpathy/autoresearch) (Andrej Karpathy, 2026, MIT). When you flip Phase 4's `mode: tinker` switch, Phase 5-6 turns into an overnight autonomous loop: an agent iteratively edits a single `tinker/train.py` under a fixed wall-clock budget, racing to minimize `val_bpb`.
+
+### Core design
+
+1. The agent edits **only `tinker/train.py`** — model, optimizer, hparams, batch, schedule, init are all fair game.
+2. **Fixed wall-clock budget per iteration** (`TINKER_BUDGET_SECONDS`, default 300 s). Comparable across whatever the agent changes. Roughly 12 iters/h, ~100 iters per overnight session.
+3. **Single comparable metric** is `val_bpb` (validation bits per byte, vocab-size-independent).
+4. **`program.md` is the human-iterable mission spec.** The agent reads it but never edits it.
+5. Loop: train → measure → keep / discard → repeat, with each iteration appending to `tinker/RESULTS.md` and `events.jsonl`.
+
+### Quick start
+
+```bash
+# 1. Scaffold tinker mode (Phase 5 dispatches the skill automatically)
+> "Use research.autonomous.tinker to scaffold tinker mode for <slug>"
+
+# 2. One-time data prep
+cd .research/<slug>/tinker && uv sync && uv run python prepare.py
+
+# 3. Sanity-check baseline iteration
+bash scripts/tinker_run.sh <slug>
+
+# 4. Hand the agent the loop
+> "Follow program.md and run the overnight loop"
+```
+
+Each iteration:
+
+- Appends a row to `tinker/RESULTS.md` (human-readable)
+- Appends a JSON line to `06_RUNS/<run_id>/events.jsonl` (`event=tinker.iteration`)
+- On improvement, snapshots `train.py` to `tinker/history/iter_<N>.py` and updates `tinker/BEST.json`
+
+### Safety
+
+`scripts/tinker_run.sh` does a pre-flight before every run:
+
+- Python syntax check on `train.py`
+- Forbidden-import detection (`transformers` / `tokenizers` / `sentence_transformers` → blocked to prevent pretrained-model leakage)
+- Strict `timeout` (SIGTERM at budget, SIGKILL +10 s)
+- OOM / divergence / runtime errors land in `events.jsonl` as `tinker.diverged`
+
+### Small-compute guide
+
+| Environment | DEPTH | MAX_SEQ_LEN | TOTAL_BATCH_SIZE | dataset | budget |
+|-------------|-------|-------------|------------------|---------|--------|
+| CPU / MPS smoke | 2 | 128 | 2^10 | TinyStories subset | 60 s |
+| RTX-3090 (24GB) | 4 | 512 | 2^14 | TinyStories full | 300 s |
+| A100-80GB / H100 | 8 | 1024 | 2^16 | FineWeb-edu | 300 s |
+
+See `skills/research.autonomous.tinker/SKILL.md` and `references/tinker_loop.md` for the full loop spec.
+
+### Acknowledgement
+
+The core ideas (single-file edit autonomy, fixed wall-clock budget, `val_bpb`, `program.md`) are Karpathy's. This plugin re-implements them in our own minimal GPT (~280 lines) so they fit our 8-phase workflow — there is no verbatim code copy. See `skills/research.autonomous.tinker/SKILL.md` for the full attribution block.
+
 ## Cost & Observability (v0.5.0+)
 
 ### Cost tracking
@@ -383,6 +440,7 @@ Invoke them through Claude Code, e.g. "Use research.cross.compare to compare `<s
 | `research.cost.estimate` | Per-run USD estimate + project rollup + budget watch (v0.5.0+) |
 | `research.publish` | HF Hub + Zenodo upload + DOI + `PUBLICATION.md` (v0.6.0+) |
 | `research.compute.shop` | Ranked GPU provider recommendations from an 18-provider catalog (commercial / marketplace / free / academic) (v0.8.0+) |
+| `research.autonomous.tinker` | karpathy-inspired autonomous tinker mode — Phase 5-6 alt where the agent iteratively edits a single `tinker/train.py` under fixed wall-clock budget to minimize `val_bpb` (v0.9.0+) |
 
 ### Subagents
 
