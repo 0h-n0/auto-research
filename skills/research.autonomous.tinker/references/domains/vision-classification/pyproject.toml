@@ -1,0 +1,35 @@
+[project]
+name = "tinker-vision"
+version = "0.1.0"
+description = "Vision classification tinker domain (CIFAR-10) — auto-research v0.11.0+"
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+authors = [{ name = "auto-research user" }]
+
+dependencies = [
+    "torch>=2.4",
+    "torchvision>=0.19",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.7",
+]
+
+# Forbidden dependencies (would short-circuit the autonomy contract):
+#   - timm / torchvision pretrained models (no pretrained weights for the agent)
+#   - any foundation-model SDK
+# The agent is expected to design and train from scratch within the time budget.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

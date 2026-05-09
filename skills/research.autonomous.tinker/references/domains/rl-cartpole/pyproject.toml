@@ -1,0 +1,36 @@
+[project]
+name = "tinker-rl-cartpole"
+version = "0.1.0"
+description = "RL CartPole tinker domain — auto-research v0.11.0+"
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+authors = [{ name = "auto-research user" }]
+
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+    "gymnasium>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.7",
+]
+
+# Forbidden dependencies (would short-circuit the autonomy contract):
+#   - stable-baselines3 / cleanrl prebuilt training loops
+#     (the agent should write the loop themselves)
+#   - any RL framework that hides the policy/value implementation
+# The agent is expected to design the full training loop within this file.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

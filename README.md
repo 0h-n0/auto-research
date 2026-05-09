@@ -310,6 +310,33 @@ bash scripts/tinker_run.sh <slug>
 
 本 skill の概念 (single-file edit autonomy / fixed wall-clock budget / val_bpb / `program.md`) は karpathy/autoresearch のアイディア。本プラグインはそれを **8-phase ワークフローに統合する形で自前再実装** (コードの verbatim コピーはなし)。詳細は `skills/research.autonomous.tinker/SKILL.md` の Acknowledgement 節。
 
+### Domain Packs (v0.11.0+)
+
+v0.9.0 / v0.10.0 の tinker / swarm は **LLM pretraining** 専用でしたが、v0.11.0 から **3 つの新 domain** を追加:
+
+| domain | dataset | starting model | metric (direction) |
+|--------|---------|----------------|--------------------|
+| `lm-pretrain` (default、v0.9.0+) | TinyStories / FineWeb-edu | minimal GPT (~280 LoC) | `val_bpb` (min) |
+| `vision-classification` (v0.11.0+) | CIFAR-10 (torchvision) | minimal CNN (~200 LoC) | `val_acc` (max) |
+| `rl-cartpole` (v0.11.0+) | CartPole-v1 (gymnasium) | REINFORCE policy (~190 LoC) | `episode_return` (max) |
+| `tabular-classification` (v0.11.0+) | sklearn breast_cancer | minimal MLP (~150 LoC) | `val_acc` (max) |
+
+```bash
+# tinker single-agent + 別 domain
+bash scripts/tinker_run.sh <slug> --domain vision-classification
+
+# swarm (multi-agent) + 別 domain
+bash scripts/swarm_init.sh <slug> --agents 3 --domain rl-cartpole
+```
+
+各 domain は **train.py.txt + prepare.py.txt + program.md + pyproject.toml + metric_spec.json** の 5 ファイルで完結。
+`metric_spec.json` で direction (`min` / `max`) を宣言し、`tinker_run.sh` は direction-aware に best を比較。
+**完全 後方互換**: 既存 `lm-pretrain` workspace は何も変えなくて良い (default のまま、`val_bpb` field も継続出力)。
+
+5 戦略 (depth/lr/arch/batch/random-restart) は **どの domain でも適用可**。各戦略の program.md は LLM hparam を例示するが、本質は「規模 / 最適化 / 構造 / batch / random」なので agent が context で読み替える。
+
+詳細: `skills/research.autonomous.tinker/references/domains/README.md`
+
 ## Research Org Swarm Mode (v0.10.0+)
 
 [karpathy/autoresearch](https://github.com/karpathy/autoresearch) の README で **future work** として明記されている "research org code" を具体化した **multi-agent 並列モード**。

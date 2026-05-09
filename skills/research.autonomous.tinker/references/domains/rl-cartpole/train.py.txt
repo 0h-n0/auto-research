@@ -1,0 +1,214 @@
+"""tinker/train.py — rl-cartpole domain — auto-research v0.11.0+.
+
+Single-file REINFORCE policy gradient baseline. The agent edits this file freely
+to maximize mean episode return on CartPole-v1 under a fixed wall-clock budget.
+
+Hard rules:
+  - Do NOT modify prepare.py, data/, or the eval seed list.
+  - Do NOT use stable-baselines3 / cleanrl / similar prebuilt RL loops — design the
+    training algorithm yourself (REINFORCE / PPO-lite / actor-critic / DQN / ...).
+  - Always write tinker/result.json with at least:
+      {"primary_metric": <float|null>, "metric_name": "episode_return", "direction": "max",
+       "wall_time_s": <float>, "n_iters": <int>, "diverged": <bool>, "domain": "rl-cartpole"}
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+  Self-authored REINFORCE baseline for the auto-research plugin (v0.11.0+).
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import time
+from dataclasses import dataclass, asdict
+from pathlib import Path
+
+import gymnasium as gym
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+@dataclass
+class Config:
+    # Policy network (agent freely changes)
+    hidden: int = 64
+    depth: int = 1            # number of hidden layers
+    activation: str = "tanh"  # tanh | relu
+
+    # Optimization
+    lr: float = 3e-3
+    gamma: float = 0.99
+    weight_decay: float = 0.0
+    grad_clip: float = 1.0
+    entropy_coef: float = 0.0
+
+    # Rollout / batch
+    episodes_per_update: int = 5
+    eval_every_episodes: int = 50
+
+    seed: int = 42
+    budget_seconds: int = int(os.environ.get("TINKER_BUDGET_SECONDS", 300))
+
+
+class Policy(nn.Module):
+    def __init__(self, obs_dim: int, n_actions: int, cfg: Config):
+        super().__init__()
+        layers: list[nn.Module] = []
+        d = obs_dim
+        for _ in range(cfg.depth):
+            layers.append(nn.Linear(d, cfg.hidden))
+            layers.append(nn.Tanh() if cfg.activation == "tanh" else nn.ReLU())
+            d = cfg.hidden
+        layers.append(nn.Linear(d, n_actions))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        return self.net(obs)
+
+
+def manifest() -> dict:
+    p = Path(__file__).parent / "data" / "manifest.json"
+    return json.loads(p.read_text())
+
+
+def discount(rewards: list[float], gamma: float) -> list[float]:
+    out = []
+    R = 0.0
+    for r in reversed(rewards):
+        R = r + gamma * R
+        out.append(R)
+    out.reverse()
+    return out
+
+
+def eval_policy(policy: Policy, env_id: str, seeds: list[int], device: str) -> float:
+    policy.eval()
+    returns = []
+    with torch.no_grad():
+        for s in seeds:
+            env = gym.make(env_id)
+            obs, _ = env.reset(seed=int(s))
+            ep_return = 0.0
+            done = False
+            while not done:
+                ot = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+                logits = policy(ot)
+                action = int(torch.argmax(logits, dim=-1).item())
+                obs, r, term, trunc, _ = env.step(action)
+                ep_return += float(r)
+                done = bool(term or trunc)
+            env.close()
+            returns.append(ep_return)
+    policy.train()
+    return float(np.mean(returns))
+
+
+def main():
+    cfg = Config()
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
+
+    m = manifest()
+    env_id = m["env_id"]
+    obs_dim = int(m["obs_shape"][0])
+    n_actions = int(m["n_actions"])
+    eval_seeds = list(m["eval_seeds"])
+
+    policy = Policy(obs_dim, n_actions, cfg).to(device)
+    optim = torch.optim.AdamW(policy.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    n_params = sum(p.numel() for p in policy.parameters())
+    print(f"# device={device} params={n_params/1e3:.1f}k hidden={cfg.hidden} depth={cfg.depth} budget={cfg.budget_seconds}s")
+
+    env = gym.make(env_id)
+    t0 = time.monotonic()
+    episode_idx = 0
+    diverged = False
+    last_eval = float("nan")
+
+    while True:
+        if time.monotonic() - t0 >= cfg.budget_seconds * 0.9:  # leave 10% for final eval
+            break
+
+        # Collect a batch of episodes
+        all_logps: list[torch.Tensor] = []
+        all_returns: list[float] = []
+        for _ in range(cfg.episodes_per_update):
+            obs, _ = env.reset(seed=int(cfg.seed + episode_idx))
+            ep_logps: list[torch.Tensor] = []
+            ep_rewards: list[float] = []
+            done = False
+            while not done:
+                ot = torch.tensor(obs, dtype=torch.float32, device=device).unsqueeze(0)
+                logits = policy(ot)
+                dist = torch.distributions.Categorical(logits=logits)
+                action = dist.sample()
+                logp = dist.log_prob(action)
+                ep_logps.append(logp.squeeze(0))
+                obs, r, term, trunc, _ = env.step(int(action.item()))
+                ep_rewards.append(float(r))
+                done = bool(term or trunc)
+            G = discount(ep_rewards, cfg.gamma)
+            all_logps.extend(ep_logps)
+            all_returns.extend(G)
+            episode_idx += 1
+
+        if not all_logps:
+            continue
+
+        returns_t = torch.tensor(all_returns, dtype=torch.float32, device=device)
+        # Baseline: subtract mean for variance reduction
+        returns_t = returns_t - returns_t.mean()
+        if returns_t.std() > 1e-6:
+            returns_t = returns_t / (returns_t.std() + 1e-6)
+        logps = torch.stack(all_logps)
+        loss = -(logps * returns_t).mean()
+
+        if math.isnan(loss.item()) or math.isinf(loss.item()):
+            diverged = True
+            break
+
+        optim.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(policy.parameters(), cfg.grad_clip)
+        optim.step()
+
+        if episode_idx % cfg.eval_every_episodes == 0:
+            last_eval = eval_policy(policy, env_id, eval_seeds[:5], device)
+            print(f"# ep={episode_idx}  eval_partial={last_eval:.1f}  loss={loss.item():.4f}  t={time.monotonic()-t0:.1f}s")
+
+    env.close()
+
+    eval_score: float | None
+    try:
+        eval_score = eval_policy(policy, env_id, eval_seeds, device) if not diverged else None
+    except Exception as e:
+        print(f"# eval failed: {type(e).__name__}: {e}")
+        eval_score = None
+
+    wall = time.monotonic() - t0
+    result = {
+        "schema_version": 1,
+        "domain": "rl-cartpole",
+        "primary_metric": eval_score,
+        "metric_name": "episode_return",
+        "direction": "max",
+        "wall_time_s": wall,
+        "n_iters": episode_idx,
+        "diverged": diverged,
+        "params_k": round(n_params / 1e3, 2),
+        "device": device,
+        "config": asdict(cfg),
+    }
+    Path("tinker/result.json").parent.mkdir(parents=True, exist_ok=True)
+    Path("tinker/result.json").write_text(json.dumps(result, indent=2))
+    print(f"# done eval_score={eval_score} eps={episode_idx} wall={wall:.1f}s diverged={diverged}")
+
+
+if __name__ == "__main__":
+    main()

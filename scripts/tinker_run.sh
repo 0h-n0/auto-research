@@ -16,10 +16,14 @@ set -uo pipefail
 
 SLUG=""
 BUDGET="${TINKER_BUDGET_SECONDS:-300}"
+WORKSPACE=""
+DOMAIN=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --budget) BUDGET="$2"; shift 2 ;;
+    --workspace) WORKSPACE="$2"; shift 2 ;;
+    --domain) DOMAIN="$2"; shift 2 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -35,16 +39,32 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${SLUG}" ]]; then
-  echo "Usage: $0 <slug> [--budget N]" >&2
+  echo "Usage: $0 <slug> [--budget N] [--workspace path] [--domain name]" >&2
   exit 2
 fi
 
 PROJECT_DIR=".research/${SLUG}"
-TINKER_DIR="${PROJECT_DIR}/tinker"
+# Workspace defaults to project's tinker/ for backward compat (v0.9.0 single-agent mode)
+if [[ -n "${WORKSPACE}" ]]; then
+  TINKER_DIR="${PROJECT_DIR}/${WORKSPACE#./}"
+else
+  TINKER_DIR="${PROJECT_DIR}/tinker"
+fi
 
 if [[ ! -d "${TINKER_DIR}" ]]; then
   echo "ERROR: ${TINKER_DIR} not found. Run research.autonomous.tinker scaffold first." >&2
   exit 1
+fi
+
+# v0.11.0: domain is read from result.json after run if not specified.
+# For backward compat, lm-pretrain is the implicit default when domain is missing.
+if [[ -z "${DOMAIN}" ]]; then
+  # Infer from data/manifest.json if present (v0.11.0+ scaffolds write this)
+  if [[ -f "${TINKER_DIR}/data/manifest.json" ]]; then
+    DOMAIN="$(jq -r '.domain // "lm-pretrain"' "${TINKER_DIR}/data/manifest.json" 2>/dev/null || echo lm-pretrain)"
+  else
+    DOMAIN="lm-pretrain"
+  fi
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
@@ -179,8 +199,15 @@ elif [[ ${EXIT} -eq 124 || ${EXIT} -eq 143 ]]; then
   STATUS="timeout"
 fi
 
+METRIC_NAME="val_bpb"
+DIRECTION="min"   # default for backward compat (lm-pretrain)
+
 if [[ -f "${RESULT_PATH}" ]]; then
-  VAL_BPB=$(jq -r '.val_bpb // "null"' "${RESULT_PATH}")
+  # v0.11.0+: prefer primary_metric / direction; fall back to val_bpb (lm-pretrain legacy)
+  PRIMARY=$(jq -r '.primary_metric // .val_bpb // "null"' "${RESULT_PATH}")
+  METRIC_NAME=$(jq -r '.metric_name // "val_bpb"' "${RESULT_PATH}")
+  DIRECTION=$(jq -r '.direction // "min"' "${RESULT_PATH}")
+  VAL_BPB="${PRIMARY}"
   N_ITERS=$(jq -r '.n_iters // 0' "${RESULT_PATH}")
   DIVERGED=$(jq -r '.diverged // false' "${RESULT_PATH}")
   WALL=$(jq -r '.wall_time_s // 0' "${RESULT_PATH}")
@@ -192,14 +219,19 @@ elif [[ "${STATUS}" == "ok" ]]; then
   STATUS="runtime_error"
 fi
 
-# 4. Compare with current best
+# 4. Compare with current best (direction-aware: min for val_bpb, max for val_acc/episode_return)
 BEST_BEFORE=$(current_best_val_bpb)
 NEW_BEST="false"
 DIFF="n/a"
 if [[ "${VAL_BPB}" != "null" && "${STATUS}" == "ok" ]]; then
-  if [[ "${BEST_BEFORE}" == "null" ]] || \
-     awk "BEGIN {exit !(${VAL_BPB} < ${BEST_BEFORE})}"; then
+  if [[ "${BEST_BEFORE}" == "null" ]]; then
     NEW_BEST="true"
+  elif [[ "${DIRECTION}" == "min" ]]; then
+    awk "BEGIN {exit !(${VAL_BPB} < ${BEST_BEFORE})}" && NEW_BEST="true"
+  else
+    awk "BEGIN {exit !(${VAL_BPB} > ${BEST_BEFORE})}" && NEW_BEST="true"
+  fi
+  if [[ "${NEW_BEST}" == "true" ]]; then
     if [[ "${BEST_BEFORE}" != "null" ]]; then
       DIFF=$(awk "BEGIN {printf \"%+0.4f\", ${VAL_BPB} - ${BEST_BEFORE}}")
     else

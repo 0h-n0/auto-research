@@ -314,6 +314,31 @@ See `skills/research.autonomous.tinker/SKILL.md` and `references/tinker_loop.md`
 
 The core ideas (single-file edit autonomy, fixed wall-clock budget, `val_bpb`, `program.md`) are Karpathy's. This plugin re-implements them in our own minimal GPT (~280 lines) so they fit our 8-phase workflow — there is no verbatim code copy. See `skills/research.autonomous.tinker/SKILL.md` for the full attribution block.
 
+### Domain Packs (v0.11.0+)
+
+The autonomous tinker loop, originally specialized for LLM pretraining (v0.9.0 / v0.10.0), now ships with **three additional domains**:
+
+| domain | dataset | starting model | metric (direction) |
+|--------|---------|----------------|--------------------|
+| `lm-pretrain` (default, v0.9.0+) | TinyStories / FineWeb-edu | minimal GPT (~280 LoC) | `val_bpb` (min) |
+| `vision-classification` (v0.11.0+) | CIFAR-10 (torchvision) | minimal CNN (~200 LoC) | `val_acc` (max) |
+| `rl-cartpole` (v0.11.0+) | CartPole-v1 (gymnasium) | REINFORCE policy (~190 LoC) | `episode_return` (max) |
+| `tabular-classification` (v0.11.0+) | sklearn breast_cancer | minimal MLP (~150 LoC) | `val_acc` (max) |
+
+```bash
+# Single-agent tinker on a non-LLM domain
+bash scripts/tinker_run.sh <slug> --domain vision-classification
+
+# Swarm (multi-agent) on a non-LLM domain
+bash scripts/swarm_init.sh <slug> --agents 3 --domain rl-cartpole
+```
+
+Each domain is a self-contained pack (`train.py.txt` / `prepare.py.txt` / `program.md` / `pyproject.toml` / `metric_spec.json`). The `metric_spec.json` declares the direction (`min` or `max`); `tinker_run.sh` compares the best direction-aware. **Fully backward-compatible**: existing `lm-pretrain` projects keep working as-is (default domain, legacy `val_bpb` field still emitted).
+
+The five swarm strategies (depth / lr / arch / batch / random-restart) apply across all domains. The example knobs in each `program_<strategy>.md` use LLM hparams, but the underlying themes (scale / optimization / structure / batch / random) translate naturally — the agent reads them in domain context.
+
+Spec: `skills/research.autonomous.tinker/references/domains/README.md`
+
 ## Research Org Swarm Mode (v0.10.0+)
 
 Materializes the **"research org code"** future-work hint from karpathy/autoresearch's README: run **N agents in parallel** (default 3), each with a different exploration strategy, and let an orchestrator merge their bests.

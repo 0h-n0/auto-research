@@ -1,0 +1,35 @@
+[project]
+name = "tinker-tabular"
+version = "0.1.0"
+description = "Tabular classification tinker domain (sklearn breast_cancer) — auto-research v0.11.0+"
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+authors = [{ name = "auto-research user" }]
+
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+    "scikit-learn>=1.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.7",
+]
+
+# Forbidden dependencies (would short-circuit autonomy):
+#   - autosklearn / autogluon / any AutoML wrapper
+#   - pretrained tabular foundation models (TabPFN etc., even though tempting on small tabular sets)
+# The agent should design and train their own model from scratch.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

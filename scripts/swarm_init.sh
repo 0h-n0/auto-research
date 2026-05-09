@@ -28,12 +28,14 @@ SLUG=""
 AGENTS=3
 STRATEGIES=""
 ALLOW_DUP=0
+DOMAIN="lm-pretrain"   # v0.11.0+; default keeps backward compat
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --agents) AGENTS="$2"; shift 2 ;;
     --strategies) STRATEGIES="$2"; shift 2 ;;
     --allow-duplicate) ALLOW_DUP=1; shift ;;
+    --domain) DOMAIN="$2"; shift 2 ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)
       if [[ -z "${SLUG}" ]]; then
@@ -46,9 +48,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${SLUG}" ]]; then
-  echo "Usage: $0 <slug> [--agents N] [--strategies a,b,c] [--allow-duplicate]" >&2
+  echo "Usage: $0 <slug> [--agents N] [--strategies a,b,c] [--allow-duplicate] [--domain D]" >&2
   exit 2
 fi
+
+# Validate domain (v0.11.0+)
+case "${DOMAIN}" in
+  lm-pretrain|vision-classification|rl-cartpole|tabular-classification) ;;
+  *)
+    echo "ERROR: unknown domain '${DOMAIN}'." >&2
+    echo "Available: lm-pretrain (default), vision-classification, rl-cartpole, tabular-classification" >&2
+    exit 2
+    ;;
+esac
 
 PROJECT_DIR=".research/${SLUG}"
 if [[ ! -d "${PROJECT_DIR}" ]]; then
@@ -124,6 +136,7 @@ subst() {
 
 echo "=== auto-research swarm init ==="
 echo "Slug:       ${SLUG}"
+echo "Domain:     ${DOMAIN}"
 echo "Agents:     ${AGENTS}"
 echo "Strategies: ${STRATEGIES}"
 echo ""
@@ -135,10 +148,19 @@ for ((i=1; i<=AGENTS; i++)); do
   AGENT_DIR="${SWARM_DIR}/${AGENT_ID}/tinker"
   mkdir -p "${AGENT_DIR}/history"
 
-  # Copy tinker templates (rename .py.txt -> .py for executable files)
-  cp "${TINKER_REFS}/train_py_template.py.txt" "${AGENT_DIR}/train.py"
-  cp "${TINKER_REFS}/prepare_py_template.py.txt" "${AGENT_DIR}/prepare.py"
-  cp "${TINKER_REFS}/tinker_pyproject_template.toml" "${AGENT_DIR}/pyproject.toml"
+  # Copy tinker templates (rename .py.txt -> .py for executable files).
+  # v0.11.0+: domain selects template source. lm-pretrain stays at top-level for
+  # backward compat; other domains live under references/domains/<name>/.
+  if [[ "${DOMAIN}" == "lm-pretrain" ]]; then
+    cp "${TINKER_REFS}/train_py_template.py.txt" "${AGENT_DIR}/train.py"
+    cp "${TINKER_REFS}/prepare_py_template.py.txt" "${AGENT_DIR}/prepare.py"
+    cp "${TINKER_REFS}/tinker_pyproject_template.toml" "${AGENT_DIR}/pyproject.toml"
+  else
+    DOMAIN_DIR="${TINKER_REFS}/domains/${DOMAIN}"
+    cp "${DOMAIN_DIR}/train.py.txt" "${AGENT_DIR}/train.py"
+    cp "${DOMAIN_DIR}/prepare.py.txt" "${AGENT_DIR}/prepare.py"
+    cp "${DOMAIN_DIR}/pyproject.toml" "${AGENT_DIR}/pyproject.toml"
+  fi
 
   # Strategy-specific program.md (substitute placeholders)
   STRAT_KEY="${STRAT//-/_}"  # depth-explore -> depth_explore
@@ -164,6 +186,7 @@ NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   echo "  \"schema_version\": 1,"
   echo "  \"slug\": \"${SLUG}\","
   echo "  \"created_at\": \"${NOW}\","
+  echo "  \"domain\": \"${DOMAIN}\","
   echo "  \"n_agents\": ${AGENTS},"
   echo "  \"agents\": ["
   for ((i=1; i<=AGENTS; i++)); do
@@ -184,7 +207,11 @@ echo "  1. Prepare data once (in agent_1):"
 echo "     cd ${PROJECT_DIR}/swarm/agent_1/tinker && uv sync && uv run python prepare.py"
 echo "  2. Launch each agent (separate Claude Code sessions or parallel Tasks):"
 for ((i=1; i<=AGENTS; i++)); do
-  echo "     bash scripts/tinker_run.sh ${SLUG} --workspace swarm/agent_${i}/tinker"
+  if [[ "${DOMAIN}" == "lm-pretrain" ]]; then
+    echo "     bash scripts/tinker_run.sh ${SLUG} --workspace swarm/agent_${i}/tinker"
+  else
+    echo "     bash scripts/tinker_run.sh ${SLUG} --workspace swarm/agent_${i}/tinker --domain ${DOMAIN}"
+  fi
 done
 echo "  3. Periodically aggregate (cron 1h or manual):"
 echo "     bash scripts/swarm_orchestrate.sh ${SLUG}"

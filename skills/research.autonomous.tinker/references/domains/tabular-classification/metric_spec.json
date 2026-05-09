@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "domain": "tabular-classification",
+  "name": "val_acc",
+  "direction": "max",
+  "scale": "linear",
+  "min_useful": 0.50,
+  "max_useful": 1.00,
+  "notes": "Held-out validation accuracy on sklearn breast_cancer (114 val samples). Strong baselines reach ~95%, gains above 97% are noisy due to small val set. 1 sample = ~0.9 pp."
+}

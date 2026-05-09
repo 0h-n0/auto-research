@@ -1,0 +1,93 @@
+"""tinker/prepare.py — vision-classification domain (CIFAR-10) — auto-research v0.11.0+.
+
+One-time data prep:
+  - Downloads CIFAR-10 via torchvision (https://www.cs.toronto.edu/~kriz/cifar.html)
+  - Saves train/val tensors as .pt under tinker/data/
+  - Writes manifest.json (domain="vision-classification", n_classes, mean/std)
+
+Hard rules (agent must NOT modify this file):
+  - Train/val split is FIXED here. Modifying it is data leakage.
+  - Use torchvision *without* pretrained weights. The agent designs from scratch.
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import torch
+import torchvision
+import torchvision.transforms as T
+
+
+N_TRAIN = int(  # truncate train set to keep things fast on consumer GPUs
+    50_000  # full CIFAR-10 train
+)
+N_VAL = 10_000  # full CIFAR-10 test set used as our val (frozen)
+DOMAIN = "vision-classification"
+
+
+def main():
+    data_dir = Path(__file__).parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    # CIFAR-10 stats (computed across the entire training split, fixed)
+    mean = (0.4914, 0.4822, 0.4465)
+    std = (0.2470, 0.2435, 0.2616)
+
+    # No augmentation here — that's a knob for the agent inside train.py.
+    # We only normalize so the basic pipeline is comparable.
+    transform = T.Compose([T.ToTensor(), T.Normalize(mean=mean, std=std)])
+
+    train_ds = torchvision.datasets.CIFAR10(
+        root=str(data_dir / "raw"),
+        train=True,
+        download=True,
+        transform=transform,
+    )
+    val_ds = torchvision.datasets.CIFAR10(
+        root=str(data_dir / "raw"),
+        train=False,
+        download=True,
+        transform=transform,
+    )
+
+    # Materialize as tensors (so train.py reads from .pt without re-downloading)
+    def stack(ds, n: int):
+        xs, ys = [], []
+        for i in range(min(n, len(ds))):
+            x, y = ds[i]
+            xs.append(x)
+            ys.append(y)
+        return torch.stack(xs), torch.tensor(ys, dtype=torch.long)
+
+    train_x, train_y = stack(train_ds, N_TRAIN)
+    val_x, val_y = stack(val_ds, N_VAL)
+
+    torch.save({"x": train_x, "y": train_y}, data_dir / "train.pt")
+    torch.save({"x": val_x, "y": val_y}, data_dir / "val.pt")
+
+    manifest = {
+        "schema_version": 1,
+        "domain": DOMAIN,
+        "dataset": "CIFAR-10",
+        "n_classes": 10,
+        "n_train": int(train_x.shape[0]),
+        "n_val": int(val_x.shape[0]),
+        "image_shape": [3, 32, 32],
+        "mean": list(mean),
+        "std": list(std),
+        "license": "https://www.cs.toronto.edu/~kriz/cifar.html (research-only, see source page)",
+    }
+    (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+
+    print(f"# wrote train tensor: {train_x.shape}, dtype={train_x.dtype}")
+    print(f"# wrote val   tensor: {val_x.shape}, dtype={val_x.dtype}")
+    print(f"# manifest: {data_dir / 'manifest.json'}")
+
+
+if __name__ == "__main__":
+    main()

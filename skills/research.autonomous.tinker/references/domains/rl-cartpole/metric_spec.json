@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "domain": "rl-cartpole",
+  "name": "episode_return",
+  "direction": "max",
+  "scale": "linear",
+  "min_useful": 0,
+  "max_useful": 500,
+  "notes": "Mean episode return over evaluation episodes on CartPole-v1. Max possible per episode = 500 (truncated). Random policy averages ~22; consistent solve = 475+ over 100 episodes."
+}

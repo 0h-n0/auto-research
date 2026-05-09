@@ -1,0 +1,65 @@
+"""tinker/prepare.py — rl-cartpole domain — auto-research v0.11.0+.
+
+For RL there is no "data prep" in the supervised sense. This script:
+  - Verifies that gymnasium can create CartPole-v1
+  - Records environment metadata to manifest.json (state/action spaces, max steps)
+  - Provides a fixed evaluation seed list so results are comparable across iterations
+
+Hard rules (agent must NOT modify this file):
+  - The evaluation seed list is FIXED. Changing it makes runs incomparable.
+  - The agent must not query the eval seeds during training.
+
+Acknowledgement:
+  Inspired by karpathy/autoresearch (https://github.com/karpathy/autoresearch, MIT, 2026).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import gymnasium as gym
+
+
+DOMAIN = "rl-cartpole"
+ENV_ID = "CartPole-v1"
+
+# Frozen evaluation seeds. Reusing the same set across runs makes val_episode_return
+# comparable across the agent's iterations.
+EVAL_SEEDS = [12345, 67890, 24680, 13579, 11111, 22222, 33333, 44444, 55555, 99999]
+EVAL_EPISODES_PER_SEED = 1   # 10 seeds * 1 ep = 10 episode mean
+
+
+def main():
+    data_dir = Path(__file__).parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    env = gym.make(ENV_ID)
+    obs_space = env.observation_space
+    act_space = env.action_space
+    max_episode_steps = getattr(env.spec, "max_episode_steps", None)
+
+    obs_shape = list(obs_space.shape) if hasattr(obs_space, "shape") else None
+    n_actions = int(act_space.n) if hasattr(act_space, "n") else None
+
+    manifest = {
+        "schema_version": 1,
+        "domain": DOMAIN,
+        "env_id": ENV_ID,
+        "obs_shape": obs_shape,
+        "n_actions": n_actions,
+        "max_episode_steps": max_episode_steps,
+        "eval_seeds": EVAL_SEEDS,
+        "eval_episodes_per_seed": EVAL_EPISODES_PER_SEED,
+        "license": "gymnasium MIT (https://github.com/Farama-Foundation/Gymnasium)",
+    }
+    (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    env.close()
+
+    print(f"# wrote manifest: {data_dir / 'manifest.json'}")
+    print(f"# env={ENV_ID}  obs={obs_shape}  actions={n_actions}  max_steps={max_episode_steps}")
+    print(f"# eval seeds: {len(EVAL_SEEDS)} (fixed, do not modify)")
+
+
+if __name__ == "__main__":
+    main()

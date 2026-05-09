@@ -7,6 +7,50 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-05-10 — Tinker Domain Packs (vision / RL / tabular)
+
+### Acknowledgement
+v0.9.0 / v0.10.0 で実装した tinker / swarm autonomous loop の **domain 拡張**。
+karpathy/autoresearch の単一ファイル編集 + 固定 wall-clock budget 概念を、LLM pretraining 以外
+の領域 (vision / RL / tabular) でも使えるよう一般化。
+
+### Added (Domain Packs)
+- **`vision-classification`**: CIFAR-10 + 自前 ~200 行小型 CNN
+  - augmentation knobs (random flip/crop) を Config として agent が触れる
+  - metric: `val_acc` (max), prepare.py で torchvision CIFAR-10 → train/val.pt
+  - program.md は CNN architecture / augmentation / SGD vs AdamW 等の hint
+- **`rl-cartpole`**: gymnasium CartPole-v1 + 自前 ~190 行 REINFORCE baseline
+  - 固定 evaluation seeds (10 個) で comparable な episode_return
+  - metric: `episode_return` (max、最大 500、solve = 475+)
+  - prebuilt RL framework (`stable_baselines3`/`cleanrl`) は禁止
+- **`tabular-classification`**: sklearn breast_cancer + 自前 ~150 行 MLP
+  - stratified 80/20 split (固定 seed=12345)、train statistics で標準化
+  - metric: `val_acc` (max、114 val samples で 1 sample = ~0.9 pp)
+  - AutoML / TabPFN は禁止
+
+### Added (Abstraction)
+- **`metric_spec.json`** schema per domain (name / direction / scale / min_useful / max_useful / notes)
+- **`result.json`** schema 拡張: `primary_metric` / `metric_name` / `direction` / `domain`
+  (legacy `val_bpb` field は lm-pretrain で継続出力、後方互換)
+- **`skills/research.autonomous.tinker/references/domains/README.md`**: domain 抽象化の SoT
+
+### Changed (Runner / Init)
+- `scripts/tinker_run.sh`: `--domain <name>` + `--workspace <path>` フラグ追加、
+  direction-aware best 比較 (min/max を両対応)、`primary_metric` 優先 + `val_bpb` fallback
+- `scripts/swarm_init.sh`: `--domain <name>` フラグ追加、各 domain の template path を解決、
+  MANIFEST.json に `domain` フィールド、不正 domain は明示エラー
+
+### Added (Tests)
+- **`tests/test_domains_smoke.sh`** (38 sub-tests):
+  - domains/README + 3 domain × 5 ファイル存在 + Python syntax + metric_spec schema +
+    TOML 妥当性 + karpathy attribution + swarm_init で各 domain scaffold 成功 + 不正 reject
+- 全テスト 11 → **12** (domains_smoke 追加)
+
+### Notes
+- **完全 後方互換**: 既存 lm-pretrain workspace と v0.9.0/v0.10.0 プロジェクトはそのまま動作
+- 5 戦略 (depth/lr/arch/batch/random-restart) は **どの domain でも適用可** (agent が context で読み替え)
+- karpathy attribution は domain 拡張で +18 箇所、累計 30+ 箇所
+
 ## [0.10.0] - 2026-05-10 — Research Org Swarm Mode (karpathy multi-agent)
 
 ### Acknowledgement
