@@ -1,16 +1,12 @@
 {
   "name": "auto-research",
   "description": "LLM研究のフルライフサイクル (literature → idea → experiment → paper) を自動化する Claude Code プラグイン。Evaluation/Benchmark, Agent/Tool-use, Fine-tuning/Post-training, Prompt/ICL, Attention・LLMアーキテクチャ内部研究をカバー。Python (uv + PyTorch + HuggingFace) 前提、8-phase / 4-gate のユーザーゲート付き自動ワークフロー。",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "0h-n0",
     "email": "kbu94982@gmail.com"
   },
   "license": "MIT",
-  "agents": "./agents/",
-  "skills": "./skills/",
-  "commands": "./commands/",
-  "hooks": "./hooks/hooks.json",
   "keywords": [
     "llm",
     "ml-research",

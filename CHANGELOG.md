@@ -7,6 +7,16 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-09
+
+### Fixed
+- `.claude-plugin/plugin.json`: removed invalid string-typed fields
+  `agents`, `skills`, `commands`, `hooks` that caused
+  `Validation errors: agents: Invalid input` during `/plugin install`.
+  Components are now resolved by Claude Code's auto-discovery from the
+  standard directories (`agents/`, `skills/`, `commands/`, `hooks/`).
+  No behavioural change — install path is the only difference.
+
 ## [0.1.0] - 2026-05-09
 
 ### Added
