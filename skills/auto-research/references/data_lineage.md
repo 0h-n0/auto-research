@@ -108,8 +108,21 @@ bash scripts/cleanup_checkpoints.sh <slug> --apply --days 60
 
 ### events.jsonl の retention
 
-- 90 日経過した `events.jsonl` は手動で `gzip` を推奨
-- 自動 cleanup は v0.6.0 では未実装 (将来検討)
+`scripts/gzip_old_events.sh` で半自動化 (v0.7.0+):
+
+```bash
+# Dry-run (gzip 候補を表示するだけ)
+bash scripts/gzip_old_events.sh <slug>
+
+# 90 日経過分を実際に gzip (元ファイルは削除)
+bash scripts/gzip_old_events.sh <slug> --apply
+
+# しきい値を変える (例: 30 日)
+bash scripts/gzip_old_events.sh <slug> --apply --days 30
+```
+
+gzip 後は `events.jsonl.gz` で検索・解析可能 (`zcat`, `zgrep`, `jq < <(zcat ...)` など)。
+schema validation の対象は raw `events.jsonl` のみ。gzipped は後段の hot path に乗らない前提。
 
 ### Pre-cleanup 推奨手順
 

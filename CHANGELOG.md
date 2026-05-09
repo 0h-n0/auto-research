@@ -7,6 +7,36 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-09 — Internationalization
+
+### Added (Documentation)
+- **`README.en.md`**: full English version of the README, covering all features
+  through v0.6.0 (install / quick start / 8-phase workflow / next-step trailer /
+  cost & observability / publishing / data & comparison / examples / contributing).
+- `README.md` 冒頭に英語版へのリンクバナーを追加 (`🇬🇧 English version`)
+- `README.en.md` 冒頭に日本語版へのリンクを追加
+- `CONTRIBUTING.md` に **Translation contributions** 節を追加:
+  - 既存翻訳一覧
+  - 新規言語の追加方針 (`README.<lang>.md` 命名、SoT との同期)
+  - 用語の不変条件 (skill / agent / command 名、Phase / Gate 番号、version 記法は翻訳しない)
+
+### Added (Hygiene)
+- **`scripts/gzip_old_events.sh`**: events.jsonl の retention 自動化
+  - デフォルト dry-run (圧縮候補表示のみ)
+  - `--days N` でしきい値 (default 90)
+  - `--apply` で実 gzip (元ファイル削除)
+  - 圧縮後は `zcat` / `zgrep` で検索可能、schema validation は raw のみ対象
+
+### Changed (Documentation)
+- `skills/auto-research/references/data_lineage.md`: events.jsonl retention 節に
+  gzip script の使い方を明記
+
+### Notes
+- 後方互換あり。日本語 README が SoT であることに変わりなし、英語版は最低限の同期。
+- `gzip_old_events.sh` は `cleanup_checkpoints.sh` と同じデザイン: dry-run default、
+  `--apply` で実行、スコープは 1 project の events.jsonl のみ
+- 翻訳貢献は CHANGELOG `[Unreleased]` `### Documentation` で管理する方針
+
 ## [0.6.0] - 2026-05-09 — Publishing & Archival
 
 ### Added (Skill)
