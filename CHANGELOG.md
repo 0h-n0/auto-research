@@ -7,6 +7,40 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-09 — Cross-Project Comparison & Export
+
+### Added (Skills)
+- **`research.cross.compare` skill** (`skills/research.cross.compare/`):
+  複数プロジェクトの primary metric を集約し、paired bootstrap (B=10000) /
+  Welch's t-test、Cohen's d / Cliff's delta、Holm-Bonferroni、ranking 表、
+  比較図 (matplotlib / seaborn colorblind palette) を含むレポートを生成。
+  `scripts/cross_compare.sh` の上位互換 (シェル script は引き続き軽量集約用に残す)。
+- **`research.export` skill** (`skills/research.export/`):
+  publication grade な共有 bundle を生成。
+  - `MANIFEST.json` (commit SHA, dependency, project state)
+  - `INTEGRITY.txt` (各ファイル sha256)
+  - **events.jsonl の PII redaction**: `prompt` / `input_text` / `output_text` を
+    sha256 hex 16 文字に置換、`/home/<user>/` を `<HOME>/` に正規化
+  - schema validation で `STATE.json` が `state.schema.json` 準拠か検証
+
+### Added (Documentation)
+- **`examples/llm-eval-mmlu-baseline/`** — Phase 4 / G3 通過状態の実プロジェクト
+  サンプル。`STATE.json`, `01_BRIEF.md`, `02_SURVEY/{papers.jsonl, MATRIX.md, notes/}`,
+  `03_GAP_ANALYSIS.md`, `03_IDEAS.md`, `04_EXPERIMENT_PLAN.md` を実物で同梱。
+  「具体的にどの粒度で書くのか」がすぐ理解できる。
+- **`skills/auto-research/references/error_handling_spec.md`** — 8 Phase × 各 skill の
+  failure mode カタログ。検出 / 回復手順 / エスカレーションルール (2 回連続→確認、
+  3 回連続→強制 rollback) を明文化。
+
+### Changed
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧に
+  `error_handling_spec.md` を追加
+
+### Notes
+- 後方互換あり。既存 `.research/<slug>/` プロジェクトはそのまま継続利用可。
+- `scripts/cross_compare.sh` / `scripts/export_project.sh` は引き続き軽量 utility として
+  残し、新 skill は publication / 統計 grade の上位機能を提供する。
+
 ## [0.3.0] - 2026-05-09 — Production Hardening
 
 ### Added (Infrastructure)

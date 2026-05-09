@@ -232,6 +232,8 @@ checkpoint / cache / dataset を誤って commit するのを防ぎます。
 
 ### Cross-project 比較・公開
 
+軽量 (shell script 版):
+
 ```bash
 # 複数プロジェクトの primary metric を 1 表で
 bash scripts/cross_compare.sh <slug1> <slug2> ...
@@ -241,7 +243,14 @@ bash scripts/export_project.sh <slug>
 # → <slug>_export_<YYYYMMDD>.tar.gz
 ```
 
-`research.cross.compare` skill 化 (統計検定込み) は v0.3.1 予定。
+統計検定 / publication grade (skill 版、v0.4.0+):
+
+| skill | 機能 |
+|-------|------|
+| `research.cross.compare` | paired bootstrap / Welch's t / Cohen's d / Cliff's delta / Holm-Bonferroni / 比較図表生成 |
+| `research.export` | PII redaction (prompt → sha256) + `MANIFEST.json` (commit SHA, deps, state) + `INTEGRITY.txt` (sha256 一覧) |
+
+skill は Claude Code 経由で「`research.cross.compare skill を使って <slug1> と <slug2> を比較して」のように呼び出します。
 
 ## ワークフロー (8 phases / 4 gates)
 
@@ -270,6 +279,8 @@ bash scripts/export_project.sh <slug>
 | `research.experiment.run` | 再現性ある実行 + JSONL ログ |
 | `research.paper.draft` | LaTeX/Markdown 論文ドラフト |
 | `research.attention.probe` | TransformerLens / nnsight ベース介入プロトコル |
+| `research.cross.compare` | 複数プロジェクトの metric を統計検定込みで比較 (v0.4.0+) |
+| `research.export` | publication grade bundle (PII redaction + MANIFEST + INTEGRITY) (v0.4.0+) |
 
 ### Subagents
 
@@ -293,6 +304,14 @@ bash scripts/export_project.sh <slug>
 - arXiv は再配布 OK だが商用ジャーナル PDF はキャッシュしません。`notes/` には要約 + メタのみ保存、原文引用は ≤ 2 文。
 - 評価データセットの汚染チェック (`eval_protocol.md` 必須項目)
 - LLM-author 開示欄を `paper/` テンプレに同梱 (NeurIPS/ICLR/ACL ポリシー準拠)
+
+## Examples (v0.4.0+)
+
+`examples/` に walked-through な実プロジェクト構造を同梱しています:
+
+- [`examples/llm-eval-mmlu-baseline/`](examples/llm-eval-mmlu-baseline/) — MMLU 公平比較研究の Phase 4 / G3 通過状態 (Brief, Survey, Gap, Ideas, Plan を実物として参照可)
+
+新規プロジェクトを近い領域で始めるとき、example をコピーして `--resume` で続きを実行できます。詳細は `examples/README.md`。
 
 ## コントリビューション
 

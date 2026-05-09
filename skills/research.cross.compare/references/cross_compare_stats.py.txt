@@ -1,0 +1,260 @@
+"""scripts/cross_compare_stats.py — research.cross.compare の統計分析バックエンド。
+
+このファイルは skill リファレンスとして同梱。実装時に `code/analysis/cross_compare_stats.py`
+として展開し、`uv run --with 'numpy scipy matplotlib seaborn pandas' python ...` で実行する。
+
+Usage:
+    python cross_compare_stats.py <raw.json> <output_dir>
+
+Inputs (raw.json):
+    {
+        "comparison_id": "...",
+        "generated_at": "...",
+        "projects": [...],
+        "common_metric": "acc",
+        "data": {<slug>: [{"run_id":..., "value":..., "n":..., "seed":...}, ...], ...},
+        "exclusions": {...}
+    }
+
+Outputs:
+    <output_dir>/REPORT.md
+    <output_dir>/figures/comparison_box.pdf
+    <output_dir>/figures/pairwise_effect.pdf
+
+注: ファイル拡張子を .txt にしているのは、reference が誤って実行可能 Python と
+解釈されないようにするため。展開時に .py に rename する。
+"""
+
+from __future__ import annotations
+
+import itertools
+import json
+import math
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def paired_bootstrap(a: np.ndarray, b: np.ndarray, B: int = 10000, alpha: float = 0.05, seed: int = 0):
+    rng = np.random.default_rng(seed)
+    n = min(len(a), len(b))
+    if n < 2:
+        return float(a.mean() - b.mean()), (float("nan"), float("nan")), float("nan")
+    a, b = a[:n], b[:n]
+    diffs = a - b
+    boot = np.empty(B)
+    for i in range(B):
+        idx = rng.integers(0, n, size=n)
+        boot[i] = diffs[idx].mean()
+    lo, hi = np.quantile(boot, [alpha / 2, 1 - alpha / 2])
+    p = (boot <= 0).mean() if diffs.mean() > 0 else (boot >= 0).mean()
+    p_two = 2 * min(p, 1 - p)
+    return float(diffs.mean()), (float(lo), float(hi)), float(p_two)
+
+
+def welch_t(a: np.ndarray, b: np.ndarray):
+    if len(a) < 2 or len(b) < 2:
+        return float(a.mean() - b.mean()), (float("nan"), float("nan")), float("nan")
+    t = stats.ttest_ind(a, b, equal_var=False)
+    se = math.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b))
+    delta = a.mean() - b.mean()
+    df = len(a) + len(b) - 2
+    crit = stats.t.ppf(0.975, df)
+    return float(delta), (float(delta - crit * se), float(delta + crit * se)), float(t.pvalue)
+
+
+def cohens_d(a: np.ndarray, b: np.ndarray):
+    if len(a) < 2 or len(b) < 2:
+        return float("nan")
+    pooled_sd = math.sqrt(((len(a) - 1) * a.var(ddof=1) + (len(b) - 1) * b.var(ddof=1)) / (len(a) + len(b) - 2))
+    if pooled_sd == 0:
+        return float("nan")
+    return float((a.mean() - b.mean()) / pooled_sd)
+
+
+def cliffs_delta(a: np.ndarray, b: np.ndarray):
+    if len(a) == 0 or len(b) == 0:
+        return float("nan")
+    n = 0
+    for x in a:
+        for y in b:
+            if x > y:
+                n += 1
+            elif x < y:
+                n -= 1
+    return float(n / (len(a) * len(b)))
+
+
+def holm_bonferroni(p_values: list[float]) -> list[float]:
+    n = len(p_values)
+    ordered = sorted(enumerate(p_values), key=lambda kv: kv[1])
+    adjusted = [0.0] * n
+    for rank, (idx, p) in enumerate(ordered):
+        adjusted[idx] = min((n - rank) * p, 1.0)
+    # Enforce monotonicity (smallest p first)
+    sorted_adj = [adjusted[i] for i, _ in ordered]
+    for i in range(1, len(sorted_adj)):
+        if sorted_adj[i] < sorted_adj[i - 1]:
+            sorted_adj[i] = sorted_adj[i - 1]
+    for (idx, _), val in zip(ordered, sorted_adj):
+        adjusted[idx] = val
+    return adjusted
+
+
+def main():
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <raw.json> <output_dir>", file=sys.stderr)
+        sys.exit(2)
+
+    raw_path = Path(sys.argv[1])
+    out_dir = Path(sys.argv[2])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "figures").mkdir(parents=True, exist_ok=True)
+
+    raw = json.loads(raw_path.read_text())
+    projects = raw["projects"]
+    data = {p: np.array([r["value"] for r in raw["data"][p]], dtype=float) for p in projects}
+    metric = raw.get("common_metric", "metric")
+
+    # Main table
+    main_rows = []
+    for p in projects:
+        arr = data[p]
+        if len(arr) == 0:
+            main_rows.append((p, 0, float("nan"), float("nan"), float("nan")))
+            continue
+        m = arr.mean()
+        if len(arr) > 1:
+            se = arr.std(ddof=1) / math.sqrt(len(arr))
+            ci = stats.t.interval(0.95, len(arr) - 1, loc=m, scale=se)
+        else:
+            ci = (m, m)
+        main_rows.append((p, len(arr), float(m), float(ci[0]), float(ci[1])))
+    main_rows.sort(key=lambda r: (-r[2] if not math.isnan(r[2]) else float("inf")))
+
+    # Pairwise comparisons
+    pairs = list(itertools.combinations(projects, 2))
+    pair_results = []
+    for a_name, b_name in pairs:
+        a, b = data[a_name], data[b_name]
+        if len(a) == len(b) and len(a) > 1:
+            mean_diff, ci, p = paired_bootstrap(a, b)
+            test = "paired_bootstrap"
+        else:
+            mean_diff, ci, p = welch_t(a, b)
+            test = "welch_t"
+        d = cohens_d(a, b)
+        delta = cliffs_delta(a, b)
+        pair_results.append({
+            "a": a_name,
+            "b": b_name,
+            "mean_diff": mean_diff,
+            "ci_lo": ci[0],
+            "ci_hi": ci[1],
+            "p": p,
+            "test": test,
+            "cohens_d": d,
+            "cliffs_delta": delta,
+        })
+    p_values = [r["p"] for r in pair_results]
+    if any(not math.isnan(p) for p in p_values):
+        p_adj = holm_bonferroni([0.0 if math.isnan(p) else p for p in p_values])
+        for r, pa in zip(pair_results, p_adj):
+            r["p_holm"] = pa
+    else:
+        for r in pair_results:
+            r["p_holm"] = float("nan")
+
+    # Write REPORT.md
+    md = []
+    md.append(f"# Cross-Project Comparison Report — {raw['comparison_id']}\n")
+    md.append(f"Generated: {raw['generated_at']}")
+    md.append(f"Projects: {', '.join(projects)}")
+    md.append(f"Common metric: {metric}")
+    md.append(f"Excluded failed runs: {raw.get('exclusions', {}).get('failed_runs', 0)}")
+    md.append("")
+    md.append("## Main Table")
+    md.append("| Project | N runs | mean ± 95% CI | rank |")
+    md.append("|---------|--------|---------------|------|")
+    for i, (p, n, m, lo, hi) in enumerate(main_rows):
+        if n == 0:
+            md.append(f"| {p} | 0 | n/a | — |")
+        else:
+            md.append(f"| {p} | {n} | {m:.3f} [{lo:.3f}, {hi:.3f}] | {i+1} |")
+    md.append("")
+    md.append("## Pairwise Comparison")
+    md.append("| Pair | Δ mean (95% CI) | test | p (raw) | p (Holm) | Cohen's d | Cliff's δ |")
+    md.append("|------|-----------------|------|---------|----------|-----------|-----------|")
+    for r in pair_results:
+        sig = ""
+        if not math.isnan(r["p_holm"]):
+            if r["p_holm"] < 0.001:
+                sig = " ***"
+            elif r["p_holm"] < 0.01:
+                sig = " **"
+            elif r["p_holm"] < 0.05:
+                sig = " *"
+        md.append(
+            f"| {r['a']} vs {r['b']} | {r['mean_diff']:+.3f} "
+            f"[{r['ci_lo']:+.3f}, {r['ci_hi']:+.3f}] | {r['test']} | "
+            f"{r['p']:.4f} | {r['p_holm']:.4f}{sig} | "
+            f"{r['cohens_d']:.3f} | {r['cliffs_delta']:.3f} |"
+        )
+    md.append("")
+    md.append("## Statistical Notes")
+    md.append("- Paired bootstrap when seeds align (B=10000), Welch's t-test otherwise")
+    md.append("- Holm-Bonferroni correction across pairwise comparisons")
+    md.append("- Cohen's d for continuous, Cliff's delta for ordinal effect size")
+    md.append("- Significance: * p<0.05, ** p<0.01, *** p<0.001 (after Holm)")
+    md.append("")
+    md.append("## Figures")
+    md.append("- `figures/comparison_box.pdf` — distribution per project")
+    md.append("- `figures/pairwise_effect.pdf` — pairwise Δ with 95% CI")
+    md.append("")
+    md.append("## Reproducibility")
+    md.append(f"Re-run with: `python {sys.argv[0]} {sys.argv[1]} {sys.argv[2]}`")
+    (out_dir / "REPORT.md").write_text("\n".join(md))
+
+    # Figures
+    sns.set_palette("colorblind")
+
+    df = pd.DataFrame([
+        {"project": p, "value": v}
+        for p, arr in data.items()
+        for v in arr
+    ])
+    if not df.empty:
+        plt.figure(figsize=(6, 4))
+        sns.boxplot(data=df, x="project", y="value")
+        sns.stripplot(data=df, x="project", y="value", color="black", size=3, alpha=0.5)
+        plt.ylabel(metric)
+        plt.xticks(rotation=20, ha="right")
+        plt.tight_layout()
+        plt.savefig(out_dir / "figures" / "comparison_box.pdf", bbox_inches="tight")
+        plt.close()
+
+    if pair_results:
+        plt.figure(figsize=(6, max(2, len(pair_results) * 0.5)))
+        labels = [f"{r['a']} vs {r['b']}" for r in pair_results]
+        means = [r["mean_diff"] for r in pair_results]
+        errs = [(r["mean_diff"] - r["ci_lo"], r["ci_hi"] - r["mean_diff"]) for r in pair_results]
+        errs_arr = np.array(errs).T
+        plt.errorbar(means, range(len(labels)), xerr=errs_arr, fmt="o", color="C0")
+        plt.axvline(0, color="gray", linestyle="--")
+        plt.yticks(range(len(labels)), labels)
+        plt.xlabel(f"Δ {metric} (95% CI)")
+        plt.tight_layout()
+        plt.savefig(out_dir / "figures" / "pairwise_effect.pdf", bbox_inches="tight")
+        plt.close()
+
+    print(f"✓ Report: {out_dir / 'REPORT.md'}")
+    print(f"✓ Figures: {out_dir / 'figures'}/")
+
+
+if __name__ == "__main__":
+    main()

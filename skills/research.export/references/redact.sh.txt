@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# scripts/redact_events.sh — research.export skill の PII redaction バックエンド。
+#
+# このファイルは reference 兼テンプレ。skill 実行時に `code/scripts/redact_events.sh` 等として
+# 展開して使うか、skill が直接 jq で同等処理を行う。
+#
+# Usage: bash redact_events.sh <slug> [<dest_dir>]
+#
+# 動作:
+#   - .research/<slug>/06_RUNS/*/events.jsonl を全て scan
+#   - prompt / input_text / output_text フィールドを削除し、
+#     代わりに <field>_sha256 (16 文字 hex 先頭) を入れる
+#   - error_stack 内の絶対パス /home/<user>/ を <HOME>/ に置換
+#   - 結果を <dest_dir>/<run_id>/events.jsonl.redacted に書き出し
+
+set -euo pipefail
+
+SLUG="${1:?Usage: $0 <slug> [<dest_dir>]}"
+DEST="${2:-.research/${SLUG}/_redacted}"
+SRC=".research/${SLUG}"
+
+if [[ ! -d "${SRC}" ]]; then
+  echo "ERROR: ${SRC} not found" >&2; exit 1
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq required" >&2; exit 1
+fi
+if ! command -v sha256sum >/dev/null 2>&1; then
+  echo "ERROR: sha256sum required" >&2; exit 1
+fi
+
+mkdir -p "${DEST}"
+
+REDACTED_LINES=0
+for events in "${SRC}"/06_RUNS/*/events.jsonl; do
+  [[ -f "${events}" ]] || continue
+  run_id=$(basename "$(dirname "${events}")")
+  out_dir="${DEST}/06_RUNS/${run_id}"
+  mkdir -p "${out_dir}"
+
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+
+    # prompt / input_text / output_text を sha256 に置換
+    new=$(echo "${line}" | jq -c '
+      def hash(field): . + {(field + "_sha256"): (.[field] // "" | tostring)};
+      (if .prompt then hash("prompt") | del(.prompt) else . end)
+      | (if .input_text then hash("input_text") | del(.input_text) else . end)
+      | (if .output_text then hash("output_text") | del(.output_text) else . end)
+    ')
+
+    # sha256 を実際に計算 (jq だけでは sha256 が打てないので一度シェルで計算)
+    for field in prompt input_text output_text; do
+      raw=$(echo "${line}" | jq -r ".${field} // empty")
+      if [[ -n "${raw}" ]]; then
+        sha=$(echo -n "${raw}" | sha256sum | cut -c1-16)
+        new=$(echo "${new}" | jq -c --arg sha "${sha}" --arg f "${field}_sha256" '.[$f] = $sha')
+      fi
+    done
+
+    # error_stack の /home/<user>/ → <HOME>/
+    new=$(echo "${new}" | jq -c '
+      if .error_stack then
+        .error_stack |= gsub("/home/[a-z0-9_-]+/"; "<HOME>/")
+      else . end
+    ')
+
+    echo "${new}" >> "${out_dir}/events.jsonl.redacted"
+    REDACTED_LINES=$((REDACTED_LINES + 1))
+  done < "${events}"
+done
+
+echo "✓ Redacted ${REDACTED_LINES} events.jsonl lines into ${DEST}/06_RUNS/*/"
+echo "  (prompt / input_text / output_text → <field>_sha256, /home/<user>/ → <HOME>/)"
