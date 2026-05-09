@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "auto-research",
+  "owner": {
+    "name": "0h-n0",
+    "email": "kbu94982@gmail.com"
+  },
+  "metadata": {
+    "description": "LLM research full-lifecycle automation: literature survey → idea validation → experiment → paper draft (8 phases / 4 gates).",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "auto-research",
+      "description": "End-to-end LLM/ML research workflow plugin. Python (uv + PyTorch + HuggingFace) stack with user-gated 8-phase automation. Covers evaluation, agent/tool-use, fine-tuning, prompt/ICL, and mechanistic interpretability (attention internals).",
+      "source": "./",
+      "version": "0.1.0",
+      "author": {
+        "name": "0h-n0"
+      },
+      "category": "research"
+    }
+  ]
+}

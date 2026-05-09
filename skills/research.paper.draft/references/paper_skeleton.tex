@@ -1,0 +1,56 @@
+% NeurIPS-style paper skeleton.
+% Replace `\usepackage{neurips_2025}` with the appropriate ACL/EMNLP/ICLR style file
+% if `paper_format` is `latex-acl`.
+
+\documentclass{article}
+
+\usepackage[final]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+\title{ {{title}} }
+
+\author{
+  {{authors}} \\
+  {{affiliation}} \\
+  \texttt{ {{email}} }
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/limitations}
+
+% Optional, for focus_area=attention
+% \input{sections/mechanistic_analysis}
+
+\input{sections/ai_disclosure}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

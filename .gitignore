@@ -1,0 +1,18 @@
+# Claude Code per-session local config (may contain absolute paths)
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Test artifacts (research projects created by the plugin)
+.research/

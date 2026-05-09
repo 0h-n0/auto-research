@@ -1,0 +1,44 @@
+# configs/base.yaml — Hydra 設定の最小骨格。
+# research.experiment.scaffold が 04_EXPERIMENT_PLAN.md から値を埋める。
+
+project_slug: "{slug}"
+experiment_name: "baseline"
+seed: 42
+
+output_root: "results"
+
+defaults:
+  - _self_
+
+model:
+  id: "meta-llama/Llama-3.2-3B-Instruct"  # 04_EXPERIMENT_PLAN.md の baseline model に置換
+  dtype: "bf16"
+  attn_impl: "sdpa"
+
+data:
+  name: "mmlu"
+  split: "test"
+  max_examples: null
+
+train:
+  batch_size: 8
+  max_length: 2048
+  num_epochs: 1
+  lr: 2.0e-5
+  optimizer: "adamw_torch"
+  warmup_ratio: 0.03
+  grad_accum_steps: 1
+
+eval:
+  decoding: "greedy"
+  temperature: 0.0
+  top_p: 1.0
+  max_new_tokens: 256
+
+runtime:
+  device: "cuda"
+  num_gpus: 1
+
+# Phase 6 の ablation 軸はここに追加 (configs/ablations/*.yaml で override する形が推奨)
+notes: ""
+tags: []
