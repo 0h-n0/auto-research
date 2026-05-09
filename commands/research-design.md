@@ -35,3 +35,19 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Agent]
 
 - novelty 低い idea しか出ない → Phase 2 にロールバック (キーワード再拡張)
 - どう絞っても budget 2x 超 → smaller model / LoRA / subset eval を提案、それでも難しければ idea 再選 (Phase 3 ロールバック)
+
+## 完了時の出力 (必須)
+
+このコマンドの**最後**に必ず next-step trailer を出力する。**スキップ不可**。
+
+1. `.research/<slug>/STATE.json` を Read (なければ「STATE.json 不在」分岐へ)
+2. プラグイン同梱の `skills/auto-research/references/next_steps_template.md`
+   (§2 マッピング表 + §3 特殊状態) に従って「推奨」と「代替」を決定
+3. §1 の literal フォーマットで出力:
+   - `─` 罫線 (U+2500 を 37 個)
+   - `[Phase {N}/8] {●×N + ○×(8-N)}  {gate_marker}`
+   - `→ 推奨: ...` と `代替: ...`
+   - 直前に空行 1 個、コードブロックの中に入れない
+
+特殊状態 (sanity 失敗、G4 ロールバック、複数 active project、全 run 失敗、完了プロジェクト)
+は §3 を参照して優先適用する。不変条件は §5 を厳守。

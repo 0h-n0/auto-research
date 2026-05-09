@@ -374,9 +374,22 @@ experiment-designer への依頼:
 
 各 rollback は `.research/<slug>/CHANGELOG.md` に 1 行で記録 (`yyyy-mm-dd: rolled back from Phase 6 → 5 (sanity failure on metric X)`)。
 
+## Phase 完了時の Next-Step Trailer (必須)
+
+各 Phase 完了時、および呼び出された `/auto-research:research-*` コマンドの最終出力末尾に、
+**next-step trailer** を **必ず** 出力する。仕様は `references/next_steps_template.md` に集約。
+
+最小手順:
+1. `.research/<slug>/STATE.json` を Read (なければ「STATE.json 不在」分岐)
+2. `next_steps_template.md` §2 マッピング表 + §3 特殊状態に従って 推奨 / 代替 を決定
+3. §1 の literal フォーマットで出力 (`─` 罫線、`●○` 進捗バー、空行 1 個)
+
+skip 不可。STATE.json が読めない場合も §1「STATE.json 不在」テンプレを出す。
+
 ## 関連ドキュメント
 
 - `references/phase_state_machine.md` — STATE.json schema + rollback edges
+- `references/next_steps_template.md` — Next-step trailer の表示仕様 + 状態マッピング
 - `references/eval_protocol.md` — ベンチマーク選定・汚染チェック
 - `references/reproducibility_checklist.md` — Phase 4 で必須項目
 - `references/data_card_template.md` — Phase 5 で生成

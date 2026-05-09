@@ -7,6 +7,31 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-09
+
+### Added
+- **Next-step trailer**: 全 6 コマンドの完走時に、Phase 進捗バー (●○) と
+  最後通過したゲートマーカー (`G{n} ✓`)、推奨次コマンド + 代替を統一
+  フォーマットで必ず出力する。`STATE.json` の `current_phase` /
+  `last_gate_passed` / `completed_at` / `rollbacks` を読んで動的に切り替え。
+- 表示仕様の単一ソース: `skills/auto-research/references/next_steps_template.md`
+  - §1: literal フォーマット (罫線・進捗バー・代替欄)
+  - §2: STATE.json → 推奨マッピング表 (10 ケース)
+  - §3: 特殊状態 (sanity 失敗 / G4 ロールバック / 複数 active project /
+    全 run 失敗 / 完了プロジェクト / STATE.json 不在)
+  - §5: 不変条件 (進捗バー桁数、罫線文字、コードブロック禁止 等)
+
+### Changed
+- `commands/research-{start,design,experiment,write,review,status}.md`:
+  本文末尾に「完了時の出力 (必須)」セクションを追加し、共通テンプレートを参照。
+- `skills/auto-research/SKILL.md`: 「Phase 完了時の Next-Step Trailer (必須)」
+  節と関連ドキュメント一覧を追加。
+
+### Notes
+- 後方互換あり。既存の `.research/<slug>/` プロジェクトはそのまま利用可能。
+- 出力体験のみの変更で、ワークフロー (8 phases / 4 gates) や
+  各 skill / agent / hook のロジックは不変。
+
 ## [0.1.3] - 2026-05-09
 
 ### Changed
