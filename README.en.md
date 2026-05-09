@@ -229,6 +229,34 @@ Special states it handles:
 
 Single source of truth: `skills/auto-research/references/next_steps_template.md`.
 
+## Finding cheap GPU resources (v0.8.0+)
+
+Once the workload (GPU type / count / hours) is settled in Phase 4, `research.compute.shop` ranks the cheapest places to actually run it. The bundled catalog covers **18 providers** across four categories — commercial cloud (AWS / GCP / Azure / Lambda / CoreWeave / Paperspace / RunPod Secure / DataCrunch), marketplace (RunPod Community / Vast.ai / Salad / TensorDock), free tier (Colab Pro+ / Kaggle / HF ZeroGPU), and academic grants (GCP TRC / NSF ACCESS / national HPC centres).
+
+```text
+> "Use research.compute.shop to find the cheapest place to run A100-80GB ×1 for 24h"
+```
+
+A CLI shortcut is also available:
+
+```bash
+# Top commercial picks (under $5/h)
+bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --max 5.0
+
+# Prefer spot, include academic grants
+bash scripts/find_cheap_gpu.sh H100-80GB-SXM 4 168 --prefer-spot --include-academic
+
+# Save results to the project
+bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
+```
+
+### Catalog transparency
+
+- Prices are **publicly observable** reference values, with a `pricing_url` for every provider — confirm current quotes there.
+- **No affiliate links, no referral fees.** Commercial, marketplace, free, and academic options are ranked on equal footing.
+- Your real contract pricing (kept private) goes in `.research/<slug>/cost_overrides.json` (git-ignore is recommended).
+- Catalog SoT: `skills/research.compute.shop/references/gpu_providers.json`. The skill notes when `updated_at` is 90+ days old and warns past 180 days.
+
 ## Cost & Observability (v0.5.0+)
 
 ### Cost tracking
@@ -354,6 +382,7 @@ Invoke them through Claude Code, e.g. "Use research.cross.compare to compare `<s
 | `research.export` | Publication-grade bundle (PII redaction + MANIFEST + INTEGRITY) (v0.4.0+) |
 | `research.cost.estimate` | Per-run USD estimate + project rollup + budget watch (v0.5.0+) |
 | `research.publish` | HF Hub + Zenodo upload + DOI + `PUBLICATION.md` (v0.6.0+) |
+| `research.compute.shop` | Ranked GPU provider recommendations from an 18-provider catalog (commercial / marketplace / free / academic) (v0.8.0+) |
 
 ### Subagents
 

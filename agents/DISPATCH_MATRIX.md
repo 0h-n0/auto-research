@@ -38,6 +38,12 @@
 | 7 (章ごと並列) | (なし — main thread の Task 並列でドラフト) | sections 用入力 | `paper/sections/*.md` | agent ではなく Task 並列を使う |
 | 8 (Self-Review) reviewer | `research-gap-finder` × 1 (mode=reviewer) | `paper/main.{tex,md}`, `06_RESULTS.md` | `08_REVIEW.md` | 同 agent を別モードで再利用 |
 
+### Phase 4 後段 — Procurement (v0.8.0+)
+
+| Phase | dispatch される skill | 入力 | 期待出力 | 注 |
+|-------|----------------------|------|----------|-----|
+| 4 (Experiment Design) 後段 | `research.compute.shop` skill | gpu_type / gpu_count / duration_h (`04_EXPERIMENT_PLAN.md` の compute estimate から) | `.research/<slug>/COMPUTE_PROCUREMENT.md` (provider ランク) | agent ではなく skill。`experiment-designer` が出した compute 見積を受けて借りる先を決める |
+
 ## 重複境界 (anti-pattern)
 
 各 agent が「自分の領分」を超えそうな場合、ここに従って handoff する:

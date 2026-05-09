@@ -1,0 +1,311 @@
+"""scripts/compute_shop.py — research.compute.shop skill backend.
+
+このファイルは reference テンプレ。実装時に rename して使う:
+    cp skills/research.compute.shop/references/compute_shop.py.txt \\
+       .research/<slug>/code/scripts/compute_shop.py
+or run directly:
+    uv run --quiet python skills/research.compute.shop/references/compute_shop.py.txt \\
+        --gpu-type A100-80GB-SXM --gpu-count 1 --hours 24
+
+Inputs (CLI):
+    --gpu-type <str>          (required, aliases resolved)
+    --gpu-count <int>         (required)
+    --hours <float>           (required)
+    --max-usd-per-hour <f>    (optional)
+    --prefer-spot             (flag)
+    --region <str>            (repeatable)
+    --no-free                 (skip free tier)
+    --include-academic        (flag)
+    --slug <str>              (write COMPUTE_PROCUREMENT.md to .research/<slug>/)
+    --catalog <path>          (default: skills/research.compute.shop/references/gpu_providers.json)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+# ---- Data classes ----
+
+@dataclass
+class Recommendation:
+    provider_id: str
+    name: str
+    tier: str
+    type_: str
+    pricing_url: str
+    regions: list
+    unit_usd_per_hour: float | None
+    price_kind: str  # "on_demand" | "spot" | "n/a"
+    total_usd: float | None
+    region_match: int
+    notes: list[str]
+
+
+def resolve_alias(gpu_type: str, catalog: dict) -> str:
+    """Resolve alias → canonical key."""
+    if gpu_type in catalog.get("aliases", {}):
+        return catalog["aliases"][gpu_type]
+    return gpu_type
+
+
+def canonical_keys_set(catalog: dict) -> set[str]:
+    keys = set()
+    for p in catalog["providers"]:
+        keys.update(p["gpus"].keys())
+    return keys
+
+
+def fuzzy_candidates(gpu_type: str, catalog: dict, k: int = 3) -> list[str]:
+    """Suggest similar canonical keys."""
+    candidates = canonical_keys_set(catalog)
+    needle = gpu_type.lower()
+    scored = []
+    for c in candidates:
+        # Simple substring + prefix scoring
+        cl = c.lower()
+        score = 0
+        if needle in cl:
+            score += 5
+        if cl.startswith(needle[:3]):
+            score += 2
+        # Token overlap
+        for token in needle.split("-"):
+            if token in cl:
+                score += 1
+        if score > 0:
+            scored.append((score, c))
+    scored.sort(reverse=True)
+    return [c for _, c in scored[:k]]
+
+
+def select_unit_price(provider: dict, gpu_type: str, prefer_spot: bool):
+    g = provider["gpus"].get(gpu_type)
+    if g is None:
+        return None, "n/a"
+    if prefer_spot and g.get("spot") is not None:
+        return g["spot"], "spot"
+    if g.get("on_demand") is not None:
+        return g["on_demand"], "on_demand"
+    if g.get("spot") is not None:
+        return g["spot"], "spot"
+    return None, "n/a"
+
+
+def region_match_score(provider: dict, prefs: list[str]) -> int:
+    if not prefs:
+        return 0
+    regions = " ".join(provider.get("regions", [])).lower()
+    return sum(1 for p in prefs if p.lower() in regions)
+
+
+def shortform_caveat(p: dict, kind: str) -> str:
+    tier = p.get("tier", "")
+    if tier == "marketplace" or tier == "consumer":
+        if kind == "spot":
+            return "⚠ spot interrupt risk"
+        return "⚠ host availability varies"
+    if tier == "free":
+        return "⚪ free tier (limits apply)"
+    if tier == "academic":
+        return "⚪ application required"
+    if tier in ("enterprise", "cloud"):
+        return "reliable on-demand"
+    return ""
+
+
+# Tier order for tiebreak (smaller index = stronger tiebreak weight)
+TIER_RANK = {"enterprise": 0, "cloud": 1, "marketplace": 2, "consumer": 3, "free": 4, "academic": 5}
+
+
+def filter_and_score(catalog: dict, args) -> tuple[list[Recommendation], list[Recommendation], list[Recommendation], list[str]]:
+    gpu_type = resolve_alias(args.gpu_type, catalog)
+    if gpu_type not in canonical_keys_set(catalog):
+        cands = fuzzy_candidates(args.gpu_type, catalog)
+        return [], [], [], [
+            f"unknown gpu_type '{args.gpu_type}'. Did you mean: {', '.join(cands)}?"
+        ]
+
+    commercial: list[Recommendation] = []
+    free_tier: list[Recommendation] = []
+    academic: list[Recommendation] = []
+    warnings: list[str] = []
+
+    for p in catalog["providers"]:
+        unit, kind = select_unit_price(p, gpu_type, args.prefer_spot)
+        if unit is None:
+            continue
+        if args.max_usd_per_hour is not None and unit > args.max_usd_per_hour:
+            warnings.append(
+                f"{p['id']}: usd/h={unit} exceeds max={args.max_usd_per_hour} (excluded)"
+            )
+            continue
+        total = unit * args.gpu_count * args.hours
+        rec = Recommendation(
+            provider_id=p["id"],
+            name=p["name"],
+            tier=p["tier"],
+            type_=p["type"],
+            pricing_url=p["pricing_url"],
+            regions=p.get("regions", []),
+            unit_usd_per_hour=unit,
+            price_kind=kind,
+            total_usd=total,
+            region_match=region_match_score(p, args.region or []),
+            notes=[shortform_caveat(p, kind)],
+        )
+        tier = p["tier"]
+        if tier == "free":
+            if args.include_free:
+                free_tier.append(rec)
+        elif tier == "academic":
+            if args.include_academic:
+                academic.append(rec)
+        else:
+            commercial.append(rec)
+
+    commercial.sort(
+        key=lambda r: (
+            r.total_usd if r.total_usd is not None else float("inf"),
+            TIER_RANK.get(r.tier, 99),
+            -r.region_match,
+            r.provider_id,
+        )
+    )
+    return commercial, free_tier, academic, warnings
+
+
+def render_markdown(args, commercial, free_tier, academic, warnings, catalog) -> str:
+    now = datetime.now(timezone.utc).isoformat()
+    lines = []
+    lines.append("# Compute Procurement Recommendation\n")
+    lines.append(f"Generated: {now}")
+    lines.append(
+        f"Workload: {args.gpu_count}× {args.gpu_type}, {args.hours} hours"
+    )
+    filters = []
+    if args.max_usd_per_hour is not None:
+        filters.append(f"max_usd_per_hour={args.max_usd_per_hour}")
+    if args.prefer_spot:
+        filters.append("prefer_spot=true")
+    if args.region:
+        filters.append(f"region={','.join(args.region)}")
+    if filters:
+        lines.append(f"Filters: {' / '.join(filters)}")
+    lines.append("")
+
+    if warnings:
+        lines.append("## Warnings\n")
+        for w in warnings:
+            lines.append(f"- ⚠ {w}")
+        lines.append("")
+
+    if not commercial and not free_tier and not academic:
+        lines.append("## No matches found\n")
+        lines.append(
+            "Try relaxing filters, changing gpu_type, or check catalog updates."
+        )
+        return "\n".join(lines)
+
+    if commercial:
+        lines.append("## Top commercial options (sorted by total estimated USD)\n")
+        lines.append("| # | Provider | Tier | usd/h | total USD | price kind | notes |")
+        lines.append("|---|----------|------|-------|-----------|-----------|-------|")
+        for i, r in enumerate(commercial[:5], start=1):
+            note = "; ".join(n for n in r.notes if n)
+            lines.append(
+                f"| {i} | {r.name} | {r.tier} | "
+                f"{r.unit_usd_per_hour:.2f} | ${r.total_usd:.2f} | "
+                f"{r.price_kind} | {note} |"
+            )
+        lines.append("")
+        lines.append("Pricing pages:")
+        for r in commercial[:5]:
+            lines.append(f"- {r.name}: {r.pricing_url}")
+        lines.append("")
+
+    if free_tier:
+        lines.append("## Free options matching this workload (best effort)\n")
+        for r in free_tier:
+            lines.append(
+                f"- ⚪ **{r.name}**: {r.pricing_url}  ({r.notes[0] if r.notes else ''})"
+            )
+        lines.append("")
+
+    if academic:
+        lines.append("## Academic options (eligibility required)\n")
+        for r in academic:
+            lines.append(
+                f"- ⚪ **{r.name}**: {r.pricing_url}  ({r.notes[0] if r.notes else ''})"
+            )
+        lines.append("")
+
+    lines.append("## Caveats\n")
+    lines.append("- 価格は static catalog の reference 値、最新は公式 pricing page で確認")
+    lines.append("- Marketplace / spot は事前 reservation 不可、interrupted のリスクあり")
+    lines.append(f"- Catalog `updated_at`: {catalog.get('updated_at', 'unknown')}")
+    lines.append("- The auto-research project has no affiliation with any provider listed here.")
+    return "\n".join(lines)
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(
+        description="research.compute.shop — GPU procurement recommender (catalog-driven)."
+    )
+    ap.add_argument("--gpu-type", required=True)
+    ap.add_argument("--gpu-count", type=int, required=True)
+    ap.add_argument("--hours", type=float, required=True)
+    ap.add_argument("--max-usd-per-hour", type=float, default=None)
+    ap.add_argument("--prefer-spot", action="store_true")
+    ap.add_argument("--region", action="append")
+    ap.add_argument("--no-free", dest="include_free", action="store_false", default=True)
+    ap.add_argument("--include-academic", action="store_true", default=False)
+    ap.add_argument("--slug", default=None)
+    ap.add_argument(
+        "--catalog",
+        type=Path,
+        default=Path(__file__).resolve().parent / "gpu_providers.json",
+    )
+    args = ap.parse_args()
+    return args
+
+
+def main():
+    args = parse_args()
+    catalog = json.loads(args.catalog.read_text())
+
+    # Catalog freshness check
+    try:
+        upd = datetime.strptime(catalog["updated_at"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        days = (datetime.now(timezone.utc) - upd).days
+        if days > 180:
+            print(
+                f"[compute.shop] WARNING: catalog is {days} days old. Verify prices on official pages.",
+                file=sys.stderr,
+            )
+        elif days > 90:
+            print(
+                f"[compute.shop] note: catalog is {days} days old.",
+                file=sys.stderr,
+            )
+    except Exception:
+        pass
+
+    commercial, free_tier, academic, warnings = filter_and_score(catalog, args)
+    md = render_markdown(args, commercial, free_tier, academic, warnings, catalog)
+    print(md)
+
+    if args.slug:
+        out = Path(".research") / args.slug / "COMPUTE_PROCUREMENT.md"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(md)
+        print(f"\n✓ Saved to {out}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

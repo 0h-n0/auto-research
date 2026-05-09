@@ -332,6 +332,36 @@ bash scripts/export_project.sh <slug>
 
 skill は Claude Code 経由で「`research.cross.compare skill を使って <slug1> と <slug2> を比較して」のように呼び出します。
 
+## Finding cheap GPU resources (v0.8.0+)
+
+Phase 4 (Experiment Design) で workload (GPU 種別 / 個数 / 時間) が固まったら、`research.compute.shop` skill が
+**18 provider** から最安候補をランク表示します。AWS / GCP / Azure に加え、Lambda Labs / RunPod / Vast.ai / Salad /
+TensorDock / CoreWeave / DataCrunch、無料枠 (Colab Pro+ / Kaggle / HF ZeroGPU)、研究助成 (GCP TRC / NSF ACCESS / 各国 HPC) を網羅。
+
+```text
+> 「research.compute.shop skill で A100-80GB 1 枚 24 時間の workload を最安で見つけて」
+```
+
+CLI shortcut も用意:
+
+```bash
+# 最安 5 件 (commercial)
+bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --max 5.0
+
+# spot 価格優先 + 研究助成も含めて表示
+bash scripts/find_cheap_gpu.sh H100-80GB-SXM 4 168 --prefer-spot --include-academic
+
+# プロジェクトに保存 (.research/<slug>/COMPUTE_PROCUREMENT.md を生成)
+bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
+```
+
+### Catalog の透明性
+
+- 価格は **publicly observable** な reference 値 (各 provider の pricing page リンク付き、最新は公式で確認)
+- アフィリエイトリンク・紹介手数料**なし**。商用 / marketplace / free / academic を等しく扱う
+- 実契約価格 (秘匿) は `.research/<slug>/cost_overrides.json` に記入 (git ignore 推奨)
+- catalog SoT: `skills/research.compute.shop/references/gpu_providers.json` (`updated_at` 90 日経過で skill が note)
+
 ## ワークフロー (8 phases / 4 gates)
 
 | # | Phase | 主担当 | 主成果物 | Gate |
@@ -363,6 +393,7 @@ skill は Claude Code 経由で「`research.cross.compare skill を使って <sl
 | `research.export` | publication grade bundle (PII redaction + MANIFEST + INTEGRITY) (v0.4.0+) |
 | `research.cost.estimate` | run 単位 USD 試算 + project 累積コスト + budget watch (v0.5.0+) |
 | `research.publish` | HF Hub Datasets / Zenodo upload + DOI 取得 + PUBLICATION.md 生成 (v0.6.0+) |
+| `research.compute.shop` | GPU 提供元のランク推奨 (18 provider catalog、商用 / marketplace / free / academic) (v0.8.0+) |
 
 ### Subagents
 

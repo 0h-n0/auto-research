@@ -7,6 +7,50 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-10 — GPU Procurement Helper
+
+### Added (Skill)
+- **`research.compute.shop` skill** (`skills/research.compute.shop/`):
+  - 指定 workload (gpu_type / gpu_count / duration_h) に最適な GPU 提供元をランク推奨
+  - 商用 cloud / marketplace / free tier / 研究助成 を網羅した **18 provider** カタログ
+  - ranking: total USD asc + tier tiebreak + region match
+  - filters: `max_usd_per_hour`, `prefer_spot`, `region_preference`, `include_free`, `include_academic`
+  - fuzzy fallback: 不明 gpu_type に対し catalog 内候補を 3 つ提示
+  - free / academic は別 section、商用と対等扱い (アフィリエイトリンクなし、紹介手数料なし)
+  - 出力: stdout markdown + `slug` 指定で `.research/<slug>/COMPUTE_PROCUREMENT.md`
+  - 参照実装: `references/compute_shop.py.txt` (純 stdlib、依存なし)
+  - 推奨ロジック SoT: `references/recommendation_logic.md`
+
+### Added (CLI)
+- **`scripts/find_cheap_gpu.sh`**: skill を経由しない軽量 CLI shortcut
+  - `bash scripts/find_cheap_gpu.sh <gpu_type> <count> <hours> [--prefer-spot] [--max N] ...`
+
+### Added (Tests)
+- **`tests/test_compute_shop.sh`**: 8 サブテスト (catalog JSON valid / >= 12 providers /
+  required fields / updated_at format / smoke / prefer-spot ranking / fuzzy fallback / academic section)
+- 全テスト 8 → 9 (compute_shop test 追加)
+
+### Catalog (18 providers, 2026 Q2 reference)
+
+- 商用 cloud: AWS p4de/p5, GCP A3/TPU, Azure ND, Lambda Labs, CoreWeave, Paperspace, RunPod Secure, DataCrunch
+- Marketplace: RunPod Community, Vast.ai, Salad, TensorDock
+- Free tier: Google Colab Pro+, Kaggle, HF Spaces ZeroGPU
+- Academic: GCP TRC (TPU), NSF ACCESS, 各国 HPC センター (PRACE/Cyfronet/Riken/Jülich/JADE2/AIST ABCI)
+
+### Changed (Documentation)
+- `README.md` / `README.en.md`: "Finding cheap GPU resources (v0.8.0+)" 節 + skills 表に新 skill 行
+- `agents/DISPATCH_MATRIX.md`: Phase 4 に compute.shop dispatch を追記
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧 + Phase 4 ガイドに compute.shop 連携
+- `skills/auto-research/references/error_handling_spec.md`: Phase 4 表に procurement 失敗 4 項目追加
+
+### Notes
+- 後方互換あり。既存ワークフローは何も変わらず、Phase 4 で compute.shop を呼ばないままでも従来通り動作。
+- 価格は 2026-05-10 時点の publicly observable な reference 値。`gpu_providers.json` の `updated_at` を
+  半年単位で再確認推奨 (90 日経過で skill が note、180 日で warning)。
+- catalog は **アフィリエイト関係なし**、商用 / marketplace / free / academic を等しく扱う。
+- ユーザー実契約価格は `.research/<slug>/cost_overrides.json` に記入し `research.cost.estimate` で実費試算。
+  この override ファイルは git ignore 推奨 (秘匿契約情報のため)。
+
 ## [0.7.0] - 2026-05-09 — Internationalization
 
 ### Added (Documentation)

@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": 1,
+  "updated_at": "2026-05-10",
+  "currency": "USD",
+  "disclaimer": "Reference prices observable on each provider's pricing page as of 2026 Q2. Spot/community/marketplace prices fluctuate hourly; reservation discounts and academic credits change quarterly. Always verify current quotes on the linked pricing page before committing. The auto-research project has no affiliation with any provider listed here.",
+  "tier_order": ["enterprise", "cloud", "marketplace", "consumer", "free", "academic"],
+  "providers": [
+    {
+      "id": "aws-p4de-p5",
+      "name": "AWS (p4de / p5 / g5)",
+      "type": "cloud",
+      "tier": "enterprise",
+      "regions": ["us-east-1", "us-west-2", "eu-west-1", "ap-northeast-1"],
+      "url": "https://aws.amazon.com/ec2/instance-types/",
+      "pricing_url": "https://aws.amazon.com/ec2/pricing/on-demand/",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "spot (~50-70% off)",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 4.10, "spot": 1.40, "instance": "p4de.24xlarge (8× A100 split)"},
+        "H100-80GB-SXM": {"on_demand": 5.20, "spot": 2.00, "instance": "p5.48xlarge (8× H100 split)"},
+        "L4":            {"on_demand": 0.80, "spot": 0.30, "instance": "g6.xlarge"}
+      },
+      "best_for": ["enterprise SLA", "multi-region", "savings plans for >3-month workloads"],
+      "caveats": ["最低 8-GPU instance なので small workload は割高", "spot は ML training には interrupt リスク", "data egress fee 別途"]
+    },
+    {
+      "id": "gcp-a3-tpu",
+      "name": "Google Cloud (A3 / TPU v4-v5p)",
+      "type": "cloud",
+      "tier": "enterprise",
+      "regions": ["us-central1", "us-east5", "europe-west4", "asia-east1"],
+      "url": "https://cloud.google.com/compute/gpus-pricing",
+      "pricing_url": "https://cloud.google.com/compute/gpus-pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "spot",
+      "gpus": {
+        "H100-80GB-SXM": {"on_demand": 4.50, "spot": 1.80, "instance": "a3-highgpu-8g (8× H100 split)"},
+        "A100-80GB":     {"on_demand": 3.90, "spot": 1.30, "instance": "a2-ultragpu-1g"},
+        "L4":            {"on_demand": 0.65, "spot": 0.25, "instance": "g2-standard-4"},
+        "TPU-v4-8":      {"on_demand": 3.40, "spot": null, "instance": "v4-8 (TRC: 30-day free for research)"},
+        "TPU-v5p-8":     {"on_demand": 7.80, "spot": null, "instance": "v5p-8"}
+      },
+      "best_for": ["TPU access (TRC)", "long-context jobs on TPU", "BigQuery/Vertex integration"],
+      "caveats": ["TPU は PyTorch/JAX の対応コードが必要", "A100 quota 取得に時間", "TRC は research grant で別申請"]
+    },
+    {
+      "id": "azure-nd",
+      "name": "Azure (ND / NCv4 / NV)",
+      "type": "cloud",
+      "tier": "enterprise",
+      "regions": ["eastus", "westeurope", "japaneast"],
+      "url": "https://azure.microsoft.com/en-us/products/virtual-machines/",
+      "pricing_url": "https://azure.microsoft.com/en-us/pricing/details/virtual-machines/linux/",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "spot",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 4.30, "spot": 1.50, "instance": "ND96asr_A100_v4"},
+        "H100-80GB":     {"on_demand": 5.40, "spot": 2.20, "instance": "ND H100 v5"}
+      },
+      "best_for": ["enterprise compliance", "Microsoft 系 integration"],
+      "caveats": ["他大手と同等価格", "OpenAI partnership による一部 H100 が逼迫することあり"]
+    },
+    {
+      "id": "lambda-labs",
+      "name": "Lambda Labs",
+      "type": "cloud",
+      "tier": "cloud",
+      "regions": ["us-east", "us-west", "asia"],
+      "url": "https://lambdalabs.com/",
+      "pricing_url": "https://lambdalabs.com/service/gpu-cloud",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "limited",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 1.99, "spot": null, "instance": "1x A100 80GB"},
+        "A100-40GB":     {"on_demand": 1.29, "spot": null, "instance": "1x A100 40GB"},
+        "H100-80GB-SXM": {"on_demand": 2.99, "spot": null, "instance": "1x H100 80GB"},
+        "H200-141GB":    {"on_demand": 3.49, "spot": null, "instance": "1x H200"},
+        "RTX-6000-Ada":  {"on_demand": 0.80, "spot": null}
+      },
+      "best_for": ["mid-budget on-demand", "AI 専業で UX が良い", "weekly/monthly reservations cheaper"],
+      "caveats": ["在庫切れが発生することあり", "data center は限定的"]
+    },
+    {
+      "id": "coreweave",
+      "name": "CoreWeave",
+      "type": "cloud",
+      "tier": "cloud",
+      "regions": ["us-east", "us-west", "eu"],
+      "url": "https://www.coreweave.com/",
+      "pricing_url": "https://www.coreweave.com/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "limited",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 2.29, "spot": null},
+        "H100-80GB-SXM": {"on_demand": 4.25, "spot": null},
+        "H200-141GB":    {"on_demand": 5.20, "spot": null}
+      },
+      "best_for": ["enterprise-grade infiniband", "large clusters (>=8 nodes)"],
+      "caveats": ["最低契約期間や reservation 前提な ことが多い", "small workload には不向き"]
+    },
+    {
+      "id": "paperspace",
+      "name": "Paperspace (DigitalOcean)",
+      "type": "cloud",
+      "tier": "cloud",
+      "regions": ["us-east", "us-west", "eu-central"],
+      "url": "https://www.paperspace.com/",
+      "pricing_url": "https://www.paperspace.com/pricing",
+      "free_tier": "limited (free CPU + low-tier GPU)",
+      "academic": false,
+      "preemptible": "no",
+      "gpus": {
+        "A100-80GB":     {"on_demand": 3.09, "spot": null},
+        "H100-80GB":     {"on_demand": 5.95, "spot": null},
+        "RTX-A6000":     {"on_demand": 1.89, "spot": null},
+        "RTX-4000":      {"on_demand": 0.51, "spot": null}
+      },
+      "best_for": ["Jupyter ベースの interactive 開発", "Gradient (notebook) 機能"],
+      "caveats": ["enterprise 級ではない", "spot 系の価格優位性なし"]
+    },
+    {
+      "id": "runpod-secure",
+      "name": "RunPod (Secure Cloud)",
+      "type": "cloud",
+      "tier": "cloud",
+      "regions": ["us", "eu", "asia"],
+      "url": "https://runpod.io/",
+      "pricing_url": "https://www.runpod.io/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "no",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 1.89, "spot": null},
+        "H100-80GB-SXM": {"on_demand": 2.99, "spot": null},
+        "H200-141GB":    {"on_demand": 3.99, "spot": null},
+        "RTX-4090":      {"on_demand": 0.69, "spot": null},
+        "L40S":          {"on_demand": 1.19, "spot": null}
+      },
+      "best_for": ["mid-budget on-demand", "container-friendly", "Pod template が豊富"],
+      "caveats": ["region 在庫により待ち時間あり", "個別契約は限定的"]
+    },
+    {
+      "id": "runpod-community",
+      "name": "RunPod (Community Cloud)",
+      "type": "marketplace",
+      "tier": "marketplace",
+      "regions": ["global"],
+      "url": "https://runpod.io/",
+      "pricing_url": "https://www.runpod.io/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "varies",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 1.69, "spot": null},
+        "H100-80GB-SXM": {"on_demand": 2.49, "spot": null},
+        "RTX-4090":      {"on_demand": 0.34, "spot": null},
+        "RTX-3090":      {"on_demand": 0.22, "spot": null}
+      },
+      "best_for": ["consumer GPUs", "prototyping", "short experiments"],
+      "caveats": ["host の信頼性 variable", "node availability fluctuates", "long-term reservation 不可"]
+    },
+    {
+      "id": "vast-ai",
+      "name": "Vast.ai",
+      "type": "marketplace",
+      "tier": "marketplace",
+      "regions": ["global"],
+      "url": "https://vast.ai/",
+      "pricing_url": "https://vast.ai/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "interruptible (cheaper) / on-demand",
+      "gpus": {
+        "RTX-4090":      {"on_demand": 0.40, "spot": 0.20, "instance": "ranges by host"},
+        "RTX-3090":      {"on_demand": 0.25, "spot": 0.13, "instance": "ranges by host"},
+        "A100-80GB":     {"on_demand": 1.50, "spot": 0.85},
+        "H100-80GB-SXM": {"on_demand": 2.40, "spot": 1.30}
+      },
+      "best_for": ["最安価格", "短時間のバースト", "consumer / prosumer GPU"],
+      "caveats": ["host 個別の reliability に大きな差", "interruptible は突然 stop", "DLPerf スコアで host を絞る運用が必要"]
+    },
+    {
+      "id": "salad",
+      "name": "Salad Cloud",
+      "type": "marketplace",
+      "tier": "consumer",
+      "regions": ["global (consumer hardware)"],
+      "url": "https://salad.com/",
+      "pricing_url": "https://salad.com/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "always (consumer hosts)",
+      "gpus": {
+        "RTX-4090":      {"on_demand": 0.30, "spot": null, "instance": "consumer (24GB)"},
+        "RTX-3090":      {"on_demand": 0.18, "spot": null},
+        "RTX-3080":      {"on_demand": 0.10, "spot": null}
+      },
+      "best_for": ["最安 consumer GPU", "推論 / batch jobs", "interruptible OK な実験"],
+      "caveats": ["enterprise GPU (A100/H100) なし", "個別 host が落ちることあり", "training 途中の checkpoint 必須"]
+    },
+    {
+      "id": "tensordock",
+      "name": "TensorDock",
+      "type": "marketplace",
+      "tier": "marketplace",
+      "regions": ["us", "eu", "asia"],
+      "url": "https://tensordock.com/",
+      "pricing_url": "https://tensordock.com/host-cloud-gpu",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "spot variant available",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 1.95, "spot": 0.95},
+        "H100-80GB":     {"on_demand": 2.85, "spot": 1.40},
+        "RTX-4090":      {"on_demand": 0.35, "spot": 0.22}
+      },
+      "best_for": ["spot 価格が魅力", "marketplace の中では reliability 中庸"],
+      "caveats": ["地域差あり", "node 在庫 fluctuates"]
+    },
+    {
+      "id": "datacrunch",
+      "name": "DataCrunch",
+      "type": "cloud",
+      "tier": "cloud",
+      "regions": ["fi", "is"],
+      "url": "https://datacrunch.io/",
+      "pricing_url": "https://datacrunch.io/pricing",
+      "free_tier": false,
+      "academic": false,
+      "preemptible": "limited",
+      "gpus": {
+        "A100-80GB-SXM": {"on_demand": 1.65, "spot": null},
+        "H100-80GB-SXM": {"on_demand": 2.65, "spot": null},
+        "H200-141GB":    {"on_demand": 3.50, "spot": null}
+      },
+      "best_for": ["EU 拠点 (低 carbon、再生可能エネルギー)", "competitive on-demand pricing"],
+      "caveats": ["region は北欧のみ、low latency 用途には us との距離が問題", "Iceland data center は地熱電力で carbon footprint が低い (paper の Limitations で言及推奨)"]
+    },
+    {
+      "id": "colab-pro",
+      "name": "Google Colab (Free / Pro / Pro+)",
+      "type": "free",
+      "tier": "free",
+      "regions": ["global (Google managed)"],
+      "url": "https://colab.research.google.com/",
+      "pricing_url": "https://colab.research.google.com/signup",
+      "free_tier": true,
+      "academic": false,
+      "preemptible": "session-based (free has timeout)",
+      "gpus": {
+        "T4":            {"on_demand": 0.0, "spot": null, "instance": "free tier"},
+        "L4":            {"on_demand": 0.0, "spot": null, "instance": "Pro (compute units)"},
+        "A100-40GB":     {"on_demand": 0.0, "spot": null, "instance": "Pro+ (compute units, ~$50/month)"}
+      },
+      "best_for": ["small experiments", "1 回 24h 以内の単発 job", "教育・デモ"],
+      "caveats": ["free は GPU が割り当てられない時間あり", "Pro+ でも 24h 連続は厳しい", "Compute Units は事実上 ~$50/month の subscription"]
+    },
+    {
+      "id": "kaggle",
+      "name": "Kaggle Notebooks",
+      "type": "free",
+      "tier": "free",
+      "regions": ["global (Google managed)"],
+      "url": "https://www.kaggle.com/",
+      "pricing_url": "https://www.kaggle.com/code",
+      "free_tier": true,
+      "academic": false,
+      "preemptible": "weekly quota",
+      "gpus": {
+        "T4":            {"on_demand": 0.0, "spot": null, "instance": "30 hrs/week"},
+        "P100":          {"on_demand": 0.0, "spot": null, "instance": "30 hrs/week"},
+        "TPU-v3-8":      {"on_demand": 0.0, "spot": null, "instance": "20 hrs/week"}
+      },
+      "best_for": ["小規模 fine-tuning", "週ごとのバースト", "tutorial / kernel 公開"],
+      "caveats": ["週次 quota あり", "1 session 12h 上限", "phone verification 必要"]
+    },
+    {
+      "id": "hf-zerogpu",
+      "name": "HuggingFace Spaces (ZeroGPU)",
+      "type": "free",
+      "tier": "free",
+      "regions": ["global (HF managed)"],
+      "url": "https://huggingface.co/spaces",
+      "pricing_url": "https://huggingface.co/pricing",
+      "free_tier": true,
+      "academic": false,
+      "preemptible": "burst (per-call)",
+      "gpus": {
+        "A100-40GB":     {"on_demand": 0.0, "spot": null, "instance": "ZeroGPU (1-2 minute bursts)"},
+        "H100":          {"on_demand": 0.0, "spot": null, "instance": "ZeroGPU (PRO subscription required)"}
+      },
+      "best_for": ["interactive demo / showcase", "推論用途", "API のような短時間呼び出し"],
+      "caveats": ["連続 training には不向き (per-call burst)", "PRO subscription ($9/month) で更に拡張", "PUBLIC space に置く必要"]
+    },
+    {
+      "id": "gcp-trc",
+      "name": "Google TPU Research Cloud (TRC)",
+      "type": "academic",
+      "tier": "academic",
+      "regions": ["us-central / europe"],
+      "url": "https://sites.research.google/trc/about/",
+      "pricing_url": "https://sites.research.google/trc/about/",
+      "free_tier": true,
+      "academic": true,
+      "preemptible": "preemptible TPU only",
+      "gpus": {
+        "TPU-v3-8":      {"on_demand": 0.0, "spot": null, "instance": "30-day grant, preemptible"},
+        "TPU-v4-8":      {"on_demand": 0.0, "spot": null, "instance": "by application"},
+        "TPU-v5e-8":     {"on_demand": 0.0, "spot": null, "instance": "by application"}
+      },
+      "best_for": ["preemptible TPU で長時間訓練", "JAX / PyTorch XLA を書ける研究者"],
+      "caveats": ["要 application (~1 週間)", "preemptible のため checkpoint 必須", "TPU 専用、GPU code は変換要"]
+    },
+    {
+      "id": "nsf-access",
+      "name": "NSF ACCESS (US national HPC)",
+      "type": "academic",
+      "tier": "academic",
+      "regions": ["us (multiple sites)"],
+      "url": "https://access-ci.org/",
+      "pricing_url": "https://access-ci.org/get-started/",
+      "free_tier": true,
+      "academic": true,
+      "preemptible": "scheduler-based",
+      "gpus": {
+        "A100-80GB":     {"on_demand": 0.0, "spot": null, "instance": "Discover credits, application required"},
+        "H100-80GB":     {"on_demand": 0.0, "spot": null, "instance": "Explore Allocation, by competitive review"}
+      },
+      "best_for": ["米国 academic 研究者", "大規模長時間 (>= 200 GPU-h) の正式 allocation"],
+      "caveats": ["application は数週〜数ヶ月", "Discover (~400 credits) は試用、Explore は competitive", "publication acknowledgement 義務"]
+    },
+    {
+      "id": "national-hpc-others",
+      "name": "Other national / regional HPC centers",
+      "type": "academic",
+      "tier": "academic",
+      "regions": ["per country"],
+      "url": "https://prace-ri.eu/ (EU example)",
+      "pricing_url": "(各センターの application page を参照)",
+      "free_tier": true,
+      "academic": true,
+      "preemptible": "scheduler-based",
+      "gpus": {
+        "A100-80GB":     {"on_demand": 0.0, "spot": null, "instance": "PRACE / EuroHPC (EU), Cyfronet (PL), Riken (JP), Jülich (DE), JADE2 (UK), AIST ABCI (JP)"},
+        "H100-80GB":     {"on_demand": 0.0, "spot": null, "instance": "newer-tier centers"}
+      },
+      "best_for": ["所在国の academic 研究者向け", "EuroHPC は ENCCS / DECI 経由で application 可"],
+      "caveats": ["application 言語・形式が国ごとに異なる", "data sovereignty / locality の制約あり", "review cycle 月単位"]
+    }
+  ],
+  "aliases": {
+    "NVIDIA A100-SXM4-80GB": "A100-80GB-SXM",
+    "A100": "A100-80GB-SXM",
+    "H100": "H100-80GB-SXM",
+    "H200": "H200-141GB",
+    "RTX 4090": "RTX-4090",
+    "RTX 3090": "RTX-3090",
+    "L4": "L4",
+    "L40S": "L40S",
+    "TPU v4": "TPU-v4-8",
+    "TPU v5p": "TPU-v5p-8"
+  }
+}
