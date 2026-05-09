@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "project_slug": "rlhf-vs-dpo-mmlu-2026-pub",
+  "created_at": "2026-04-01T10:00:00Z",
+  "updated_at": "2026-05-09T15:30:00Z",
+  "current_phase": 8,
+  "last_gate_passed": "G4",
+  "focus_area": "post-training",
+  "paper_format": "latex-neurips",
+  "time_budget_days": 12,
+  "compute_budget_gpu_h": 150,
+  "adopted_idea_id": 1,
+  "active_run_ids": [],
+  "completed_at": "2026-04-12T22:00:00Z",
+  "published": {
+    "hf_hub": "0h-n0/auto-research-rlhf-vs-dpo-mmlu-2026-pub",
+    "zenodo_doi": "10.5281/zenodo.7654321",
+    "zenodo_url": "https://zenodo.org/record/7654321",
+    "published_at": "2026-05-09T15:30:00Z"
+  },
+  "rollbacks": []
+}

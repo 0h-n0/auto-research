@@ -81,11 +81,84 @@ INDEX.md 形式 (Phase 6 で `research.experiment.run` skill が自動更新):
   - PII redaction: events.jsonl の prompt 全文を hash 化、API key を環境変数参照に置換
 - **長期アーカイブ**: Zenodo (DOI 付き) を推奨
 
-## Retention 自動化 (v0.4.0 候補、現状は手動)
+## Retention 強制 (v0.6.0+)
 
-- 30 日経過した failed run の checkpoint を `find -mtime +30 -delete` で削除
-- 90 日経過した events.jsonl を gzip
-- これらは `RELEASING.md` の手動ハウスキープ手順に追加するか、別 skill で自動化検討
+`scripts/cleanup_checkpoints.sh` で半自動化:
+
+```bash
+# Dry-run (デフォルト) — 削除候補を表示するだけ
+bash scripts/cleanup_checkpoints.sh <slug>
+
+# 30 日経過 + best run を保持して削除
+bash scripts/cleanup_checkpoints.sh <slug> --apply --days 30 --keep-best
+
+# 60 日経過、best 保護なし
+bash scripts/cleanup_checkpoints.sh <slug> --apply --days 60
+```
+
+### Checkpoint 保持判断
+
+| 条件 | デフォルト |
+|------|----------|
+| `STATUS=succeeded` AND best run (primary metric 最大) | **保持** (`--keep-best` 時) |
+| `STATUS=succeeded` だが not best、30 日経過 | 削除候補 |
+| `STATUS=failed` (or `failed_*`)、30 日経過 | 削除候補 |
+| 30 日未満 | 保持 |
+| `--apply` 未指定 | 削除しない (dry-run) |
+
+### events.jsonl の retention
+
+- 90 日経過した `events.jsonl` は手動で `gzip` を推奨
+- 自動 cleanup は v0.6.0 では未実装 (将来検討)
+
+### Pre-cleanup 推奨手順
+
+```bash
+# 1. Cost report で実際にどれだけ disk を使ったか確認
+research.cost.estimate skill を invoke (USD はわかる)
+du -sh .research/<slug>/06_RUNS/*/checkpoints/  # disk もチェック
+
+# 2. Dry-run で削除候補を確認
+bash scripts/cleanup_checkpoints.sh <slug> --keep-best
+
+# 3. 重要な checkpoint が間違って候補に入っていないか目視
+# 4. 適用
+bash scripts/cleanup_checkpoints.sh <slug> --apply --keep-best
+```
+
+## Publishing & Archival (v0.6.0+)
+
+`research.publish` skill で公開先・アーカイブ先を管理:
+
+- **HuggingFace Hub Datasets**: modular な dataset 公開、collaboration 向け
+  - `huggingface.co/datasets/<owner>/auto-research-<slug>`
+  - `--draft` で private 公開、`--no-draft` で public
+  - 認証: `HF_TOKEN` (write 権限)
+- **Zenodo**: DOI 付き永続アーカイブ、論文引用向け
+  - DOI 例: `10.5281/zenodo.1234567`
+  - `--draft` で draft、`--no-draft` で publish (取り消し困難なため注意)
+  - 認証: `ZENODO_ACCESS_TOKEN` (テスト用に `ZENODO_SANDBOX=1`)
+
+### 公開フロー
+
+```
+Phase 8 G4 通過 (research-review)
+  ↓
+research.export skill 実行 (PII redaction + MANIFEST + INTEGRITY)
+  ↓
+research.publish skill 実行 (HF Hub + Zenodo)
+  ↓
+PUBLICATION.md 生成 (DOI + URL + bibtex 引用情報)
+  ↓
+STATE.json.published フィールドに記録
+```
+
+### 公開後の cleanup
+
+- HF Hub に push 済みの checkpoint は **ローカル削除可能** (ただし HF Hub の retention は別途確認)
+- Zenodo は published version を変更不能のため、 publish 後に再 export する場合は新 deposition
+
+詳細仕様は `skills/research.publish/SKILL.md` を参照。
 
 ## ユーザー側 `.gitignore`
 

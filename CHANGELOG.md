@@ -7,6 +7,43 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-09 — Publishing & Archival
+
+### Added (Skill)
+- **`research.publish` skill** (`skills/research.publish/`):
+  - HuggingFace Hub Datasets upload (`create_repo` + `upload_folder`)
+  - Zenodo DOI 取得 (REST API、`--draft` で sandbox、`--no-draft` で publish)
+  - 認証: `HF_TOKEN` / `ZENODO_ACCESS_TOKEN` 環境変数 (silent skip しない、明確に error)
+  - `PUBLICATION.md` 自動生成 (URL, DOI, bibtex 引用情報)
+  - `STATE.json.published` フィールドに記録
+  - 部分 success にも対応 (HF OK / Zenodo NG 等を分けて記録)
+  - 実装バックエンド: `references/publish.py.txt` (huggingface_hub + requests)
+
+### Added (Hygiene)
+- **`scripts/cleanup_checkpoints.sh`**: retention enforcement script
+  - デフォルト dry-run (誤削除防止)
+  - `--days N` で経過日数しきい値 (default 30)
+  - `--keep-best` で primary metric 最大の succeeded run を保護
+  - `--apply` で実削除、reclaimable disk size を summary 表示
+
+### Changed (Schema)
+- `tests/schemas/state.schema.json`: optional `published` block 追加
+  (hf_hub, zenodo_doi, zenodo_url, published_at)
+- `tests/fixtures/state_phase8_published.json`: 公開済みプロジェクトの fixture を追加
+
+### Changed (Documentation)
+- `skills/auto-research/references/data_lineage.md`:
+  - "Retention 強制 (v0.6.0+)" セクション (cleanup_checkpoints.sh の使い方、checkpoint 保持判断表)
+  - "Publishing & Archival (v0.6.0+)" セクション (HF Hub / Zenodo 公開フロー)
+- `skills/auto-research/references/error_handling_spec.md`: Phase 8 表に publish 関連 7 項目追加
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧を更新
+
+### Notes
+- 後方互換あり。既存 `.research/<slug>/` プロジェクトは `published` フィールド無しで継続利用可。
+- `research.publish` は **完全 opt-in**。token を設定しない既存ユーザーは何も変わらない。
+- Zenodo published version は変更不能なため、本番公開前に必ず `--draft` (sandbox) で動作確認推奨。
+- cleanup script は **デフォルト dry-run**。`--apply` を明示しない限り削除しない。
+
 ## [0.5.0] - 2026-05-09 — Cost Tracking & Observability
 
 ### Added (Skill)

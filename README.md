@@ -250,6 +250,46 @@ GPU 単価表は `skills/research.cost.estimate/references/gpu_price_table.json`
 
 詳細: `skills/research.experiment.scaffold/references/observability_setup.md`
 
+## Publishing & Archival (v0.6.0+)
+
+Phase 8 G4 通過後、`research.publish` skill で公開先を選んで一括 upload + DOI 取得:
+
+```text
+# 1. 前提: bundle を作成
+> 「research.export skill で <slug> の公開バンドルを作って」
+
+# 2. HF Hub + Zenodo に同時 upload (--draft で private/sandbox)
+> 「research.publish skill で <slug> を draft で公開」
+
+# 3. 本番公開 (Zenodo の DOI が確定する。取り消し困難)
+> 「research.publish skill で <slug> を --no-draft で本公開」
+```
+
+### 公開先
+
+| target | 用途 | 認証 env | 取り消し可 |
+|--------|------|---------|-----------|
+| HF Hub Datasets | modular な公開 / collaboration | `HF_TOKEN` | yes (private 化、削除可) |
+| Zenodo | DOI 付き永続アーカイブ / 論文引用 | `ZENODO_ACCESS_TOKEN` (`ZENODO_SANDBOX=1` でテスト可) | **published 後は不可** (draft なら可) |
+
+### 出力
+
+- `.research/<slug>/PUBLICATION.md` — URL + DOI + bibtex 引用情報
+- `.research/<slug>/STATE.json` の `published` フィールド更新
+
+### Checkpoint Cleanup
+
+```bash
+# Dry-run (削除候補を表示するだけ、デフォルト)
+bash scripts/cleanup_checkpoints.sh <slug>
+
+# 30 日経過 + best run 保護で実削除
+bash scripts/cleanup_checkpoints.sh <slug> --apply --keep-best
+```
+
+`--keep-best` は primary metric 最大の succeeded run の checkpoint を保護します。
+詳細: `skills/auto-research/references/data_lineage.md` の "Retention 強制" / "Publishing & Archival" 節。
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。
@@ -320,6 +360,7 @@ skill は Claude Code 経由で「`research.cross.compare skill を使って <sl
 | `research.cross.compare` | 複数プロジェクトの metric を統計検定込みで比較 (v0.4.0+) |
 | `research.export` | publication grade bundle (PII redaction + MANIFEST + INTEGRITY) (v0.4.0+) |
 | `research.cost.estimate` | run 単位 USD 試算 + project 累積コスト + budget watch (v0.5.0+) |
+| `research.publish` | HF Hub Datasets / Zenodo upload + DOI 取得 + PUBLICATION.md 生成 (v0.6.0+) |
 
 ### Subagents
 

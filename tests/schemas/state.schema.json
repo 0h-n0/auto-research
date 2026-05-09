@@ -78,6 +78,29 @@
       "type": ["string", "null"],
       "format": "date-time"
     },
+    "published": {
+      "type": "object",
+      "description": "Optional. Set by research.publish skill (v0.6.0+).",
+      "additionalProperties": false,
+      "properties": {
+        "hf_hub": {
+          "type": "string",
+          "description": "<owner>/<repo> identifier on HuggingFace Hub"
+        },
+        "zenodo_doi": {
+          "type": "string",
+          "pattern": "^10\\."
+        },
+        "zenodo_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "rollbacks": {
       "type": "array",
       "items": {
