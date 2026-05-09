@@ -6,7 +6,6 @@ description: >
   mutex として claim 列で管理する。
   Use when: auto-research Phase 2 後半、複数の paper-deep-reader 結果を統合するとき、
   または既存サーベイに新規論文を追加するとき。
-allowed-tools: Read, Write, Edit, Glob, Bash
 ---
 
 # `research.literature.matrix`

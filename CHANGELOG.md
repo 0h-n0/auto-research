@@ -7,6 +7,24 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-09
+
+### Fixed
+- README.md, command files, CHANGELOG, and `phase_state_machine.md` referenced
+  the wrong invocation syntax `/research:start` etc. Subdirectory-based command
+  namespacing in Claude Code does **not** produce a colon (`/foo:bar`) in the
+  invocation — the colon form is purely a `/help` display label. The actual
+  command is `/research-start`, `/research-design`, ..., `/research-status`,
+  matching the file names under `commands/`.
+- Removed non-standard frontmatter fields (`argument-hint`, `effort`,
+  `allowed-tools`) from all 6 `SKILL.md` files. The Claude Code skill spec only
+  recognises `name`, `description`, and (optional) `version`. The extra fields
+  may have caused skills to be silently skipped during plugin install.
+
+### Notes
+- No code or workflow change. Existing `.research/<slug>/` projects from a
+  v0.1.0 / v0.1.1 install remain compatible.
+
 ## [0.1.1] - 2026-05-09
 
 ### Fixed
@@ -31,9 +49,9 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 - Five specialist subagents:
   - `paper-deep-reader`, `research-gap-finder`, `experiment-designer`,
     `attention-analyst`, `result-statistician`
-- Six entry-point commands: `/research:start`, `/research:design`,
-  `/research:experiment`, `/research:write`, `/research:review`,
-  `/research:status`.
+- Six entry-point commands: `/research-start`, `/research-design`,
+  `/research-experiment`, `/research-write`, `/research-review`,
+  `/research-status`.
 - `PostToolUse` hook (`post-experiment-log.sh`) that captures every
   `uv run` invocation into `events.jsonl` for reproducibility.
 - Bundled MCP servers: Semantic Scholar, HuggingFace Hub, GitHub.

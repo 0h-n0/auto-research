@@ -11,7 +11,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Agent]
 - `STATE.json.last_gate_passed == "G1"` (Phase 2 完了)
 - `.research/<slug>/02_SURVEY/MATRIX.md` 存在
 
-満たさない場合: 「Phase 2 が未完了です。`/research:start` を先に実行してください」を表示して中断。
+満たさない場合: 「Phase 2 が未完了です。`/research-start` を先に実行してください」を表示して中断。
 
 ## 実行手順
 
@@ -29,7 +29,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Agent]
    - compute budget 検証 (`compute_budget_gpu_h` 内に収まっているか)
    - **Gate G3** (予算+設計合意): 数値を表示してユーザー承認
 
-4. 承認後、`STATE.json.last_gate_passed = "G3"` に更新し、次は `/research:experiment` を案内。
+4. 承認後、`STATE.json.last_gate_passed = "G3"` に更新し、次は `/research-experiment` を案内。
 
 ## 失敗モード
 

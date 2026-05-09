@@ -31,7 +31,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, Agent]
    - `Agent(subagent_type="result-statistician")` → `06_RESULTS.md`, `figures/*.pdf`
    - (focus_area=attention のみ) `Agent(subagent_type="attention-analyst")` → `06_RUNS/attention/<probe_id>.md`
 
-8. 進捗を表示し、次は `/research:write` (Phase 7) を案内。
+8. 進捗を表示し、次は `/research-write` (Phase 7) を案内。
 
 ## sanity check 失敗時
 

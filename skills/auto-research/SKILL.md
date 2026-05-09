@@ -10,9 +10,6 @@ description: >
   NOT for: 単発の論文要約 (→ arxiv-mcp-agent)、本番ML推論パイプライン (→ ml-engineer)、
   Rustクレート生成 (→ rlac-create)。
   入力: 自然言語の研究テーマ | arXiv URL | 既存 .research/<slug>/STATE.json への再開
-argument-hint: "[研究テーマ | arXiv URL | --resume <slug>]"
-allowed-tools: WebFetch, WebSearch, Bash, Read, Write, Edit, Glob, Grep, Agent
-effort: high
 ---
 
 # `auto-research` — LLM研究 フル自動ワークフロー

@@ -6,7 +6,6 @@ description: >
   SAE feature lookup) を `analysis/<slug>.py` 1 ファイル原則 + 活性キャッシュで効率的に実行。
   Use when: focus_area=attention の auto-research プロジェクトで Phase 5/6 に内部解析を行うとき、
   または attention-analyst agent の前段で環境を整えるとき。
-allowed-tools: Read, Write, Edit, Bash, Glob
 ---
 
 # `research.attention.probe`

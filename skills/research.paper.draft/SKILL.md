@@ -5,7 +5,6 @@ description: >
   Markdown で生成する。章ごとに並列ドラフト → 用語/記号統合 → refs.bib (Semantic Scholar 補完)。
   AI 利用開示節を必ず含める。
   Use when: auto-research Phase 7、06_RESULTS.md と 06_RUNS/*/metrics.json が揃った後。
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, Agent
 ---
 
 # `research.paper.draft`

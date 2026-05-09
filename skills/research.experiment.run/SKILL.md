@@ -5,7 +5,6 @@ description: >
   config.yaml + metrics.json + events.jsonl + STATUS で保存する。
   失敗 run も破棄せず STATUS=failed で残す。再現性 (run_id, git rev, config hash) を強制。
   Use when: auto-research Phase 6、04_EXPERIMENT_PLAN.md のベースラインが Phase 5 で通った後。
-allowed-tools: Read, Write, Edit, Bash, Glob, Agent
 ---
 
 # `research.experiment.run`

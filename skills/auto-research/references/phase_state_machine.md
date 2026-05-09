@@ -46,7 +46,7 @@
 | G4 | Phase 4 | 設計レベルの問題、再設計+再実行 |
 | G4 | Phase 7 | レビューコメント反映だけで OK |
 
-**禁止**: Phase 5 → Phase 1 のような Brief 再定義。それは新プロジェクト (`/research:start` を再実行) として扱う。
+**禁止**: Phase 5 → Phase 1 のような Brief 再定義。それは新プロジェクト (`/research-start` を再実行) として扱う。
 
 ## ロールバックの記録
 

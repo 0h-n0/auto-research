@@ -5,7 +5,6 @@ description: >
   PyTorch + HuggingFace transformers/datasets/accelerate + Hydra 構成、RunConfig dataclass、
   決定論的 seed セットアップ、最小テストスケルトンまで含む。
   Use when: auto-research Phase 5 の冒頭、04_EXPERIMENT_PLAN.md が承認された直後。
-allowed-tools: Read, Write, Edit, Bash, Glob
 ---
 
 # `research.experiment.scaffold`
