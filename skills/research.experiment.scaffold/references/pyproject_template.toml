@@ -38,6 +38,16 @@ post-training = [
     "trl>=0.11",
     "bitsandbytes>=0.43",
 ]
+# Observability (opt-in, v0.5.0+) — set WANDB_API_KEY or MLFLOW_TRACKING_URI to enable
+wandb = [
+    "wandb>=0.18",
+]
+mlflow = [
+    "mlflow>=2.16",
+]
+tensorboard = [
+    "tensorboard>=2.18",
+]
 dev = [
     "pytest>=8.0",
     "pytest-xdist>=3.6",

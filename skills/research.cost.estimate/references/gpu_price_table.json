@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "updated_at": "2026-05-09",
+  "currency": "USD",
+  "disclaimer": "Public reference prices for cloud GPUs as of 2026 Q2. Spot prices fluctuate. Use cost_overrides.json to override with your actual contract pricing.",
+  "pricing": {
+    "A100-80GB-SXM": {
+      "on_demand_usd_per_hour": 2.0,
+      "spot_usd_per_hour": 1.0,
+      "memory_gb": 80,
+      "interconnect": "NVLink 600 GB/s",
+      "sources": ["AWS p4de", "Lambda Labs", "RunPod"]
+    },
+    "A100-40GB": {
+      "on_demand_usd_per_hour": 1.5,
+      "spot_usd_per_hour": 0.8,
+      "memory_gb": 40,
+      "interconnect": "PCIe 4.0",
+      "sources": ["RunPod", "Lambda"]
+    },
+    "H100-80GB-SXM": {
+      "on_demand_usd_per_hour": 3.5,
+      "spot_usd_per_hour": 1.8,
+      "memory_gb": 80,
+      "interconnect": "NVLink 900 GB/s",
+      "sources": ["Lambda Labs", "RunPod", "AWS p5"]
+    },
+    "H100-PCIe": {
+      "on_demand_usd_per_hour": 2.8,
+      "spot_usd_per_hour": 1.5,
+      "memory_gb": 80,
+      "interconnect": "PCIe 5.0",
+      "sources": ["RunPod"]
+    },
+    "H200-141GB": {
+      "on_demand_usd_per_hour": 4.5,
+      "spot_usd_per_hour": 2.5,
+      "memory_gb": 141,
+      "interconnect": "NVLink 900 GB/s",
+      "sources": ["RunPod (limited)", "Lambda"]
+    },
+    "L40S": {
+      "on_demand_usd_per_hour": 1.0,
+      "spot_usd_per_hour": 0.5,
+      "memory_gb": 48,
+      "interconnect": "PCIe 4.0",
+      "sources": ["RunPod"]
+    },
+    "L4": {
+      "on_demand_usd_per_hour": 0.5,
+      "spot_usd_per_hour": 0.25,
+      "memory_gb": 24,
+      "interconnect": "PCIe 4.0",
+      "sources": ["GCP", "RunPod"]
+    },
+    "RTX-4090": {
+      "on_demand_usd_per_hour": 0.5,
+      "spot_usd_per_hour": 0.3,
+      "memory_gb": 24,
+      "interconnect": "PCIe 4.0",
+      "sources": ["RunPod", "Vast.ai"]
+    },
+    "RTX-3090": {
+      "on_demand_usd_per_hour": 0.3,
+      "spot_usd_per_hour": 0.2,
+      "memory_gb": 24,
+      "interconnect": "PCIe 4.0",
+      "sources": ["Vast.ai"]
+    },
+    "TPU-v4-8": {
+      "on_demand_usd_per_hour": 3.5,
+      "spot_usd_per_hour": null,
+      "memory_gb": 256,
+      "interconnect": "ICI 2.4 TB/s",
+      "sources": ["GCP (TRC programme: free for research)"]
+    },
+    "Apple-M-series": {
+      "on_demand_usd_per_hour": 0.0,
+      "spot_usd_per_hour": 0.0,
+      "memory_gb": null,
+      "interconnect": "unified memory",
+      "sources": ["local hardware"]
+    },
+    "unknown": {
+      "on_demand_usd_per_hour": null,
+      "spot_usd_per_hour": null,
+      "memory_gb": null,
+      "interconnect": null,
+      "sources": []
+    }
+  },
+  "aliases": {
+    "NVIDIA A100-SXM4-80GB": "A100-80GB-SXM",
+    "NVIDIA A100": "A100-80GB-SXM",
+    "NVIDIA H100": "H100-80GB-SXM",
+    "NVIDIA H100 80GB HBM3": "H100-80GB-SXM",
+    "NVIDIA H200": "H200-141GB",
+    "NVIDIA L40S": "L40S",
+    "NVIDIA L4": "L4",
+    "NVIDIA GeForce RTX 4090": "RTX-4090",
+    "NVIDIA GeForce RTX 3090": "RTX-3090"
+  }
+}

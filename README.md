@@ -212,6 +212,44 @@ find ~/.claude/skills ~/.claude/agents ~/.claude/commands -lname "*my-plugins/au
 
 表示仕様の単一ソースは `skills/auto-research/references/next_steps_template.md`。
 
+## Cost & Observability (v0.5.0+)
+
+### Cost tracking
+
+`research.cost.estimate` skill で run 単位の USD コストを `metrics.json` に追記し、
+プロジェクト累積コストを `06_COST_REPORT.md` に出力します。`compute_budget_gpu_h` の
+80% / 100% で警告が出ます。
+
+```text
+> 「research.cost.estimate skill で <slug> のコストを更新して」
+```
+
+GPU 単価表は `skills/research.cost.estimate/references/gpu_price_table.json` に SoT 化
+(A100 / H100 / H200 / L40S / RTX-4090 / TPU-v4 等を収録)。実契約価格と差がある場合は
+`.research/<slug>/cost_overrides.json` で上書きできます:
+
+```json
+{
+  "gpu_pricing": {"A100-80GB-SXM": 1.20},
+  "note": "RunPod spot, 2026 Q2 contract"
+}
+```
+
+### W&B / MLflow / TensorBoard 統合 (opt-in)
+
+環境変数を設定するだけで自動有効化、未設定時は silent no-op:
+
+| Backend | 環境変数 | extras |
+|---------|---------|--------|
+| W&B | `WANDB_API_KEY` (必須), `WANDB_PROJECT`, `WANDB_MODE` (任意) | `uv sync --extra wandb` |
+| MLflow | `MLFLOW_TRACKING_URI` (必須), `MLFLOW_EXPERIMENT_NAME` (任意) | `uv sync --extra mlflow` |
+| TensorBoard | `TB_LOG_DIR` | `uv sync --extra tensorboard` |
+
+`events.jsonl` (auto-research core ログ) は常に書かれるため、observability backend は
+**追加** ログ。完全 opt-in なので既存ユーザーは何もしなくて OK。
+
+詳細: `skills/research.experiment.scaffold/references/observability_setup.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。
@@ -281,6 +319,7 @@ skill は Claude Code 経由で「`research.cross.compare skill を使って <sl
 | `research.attention.probe` | TransformerLens / nnsight ベース介入プロトコル |
 | `research.cross.compare` | 複数プロジェクトの metric を統計検定込みで比較 (v0.4.0+) |
 | `research.export` | publication grade bundle (PII redaction + MANIFEST + INTEGRITY) (v0.4.0+) |
+| `research.cost.estimate` | run 単位 USD 試算 + project 累積コスト + budget watch (v0.5.0+) |
 
 ### Subagents
 

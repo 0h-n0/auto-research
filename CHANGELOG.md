@@ -7,6 +7,47 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-09 — Cost Tracking & Observability
+
+### Added (Skill)
+- **`research.cost.estimate` skill** (`skills/research.cost.estimate/`):
+  - 各 run の compute cost (USD) を `duration × usd_per_hour × gpu_count` で試算
+  - project 累積コスト + budget watch (50% safe / 80% caution / 100% over)
+  - GPU 単価表 (`references/gpu_price_table.json`) に A100/H100/H200/L40S/L4/RTX-4090/TPU 等を収録
+  - ユーザー側 `cost_overrides.json` で実契約価格を上書き可能
+  - 実装バックエンド: `references/cost_estimate.py.txt`
+  - 出力: `06_RUNS/<id>/metrics.json` の `cost_estimate` ブロック + `06_COST_REPORT.md`
+
+### Added (Observability — opt-in)
+- **W&B / MLflow / TensorBoard 統合** (環境変数で有効化、未設定時は silent no-op):
+  - `WANDB_API_KEY`, `WANDB_PROJECT`, `WANDB_MODE`
+  - `MLFLOW_TRACKING_URI`, `MLFLOW_EXPERIMENT_NAME`
+  - `TB_LOG_DIR`
+- `pyproject_template.toml` に `wandb` / `mlflow` / `tensorboard` extras を追加
+  (`uv sync --extra wandb` で個別 install)
+- `research.experiment.scaffold/references/observability_setup.md` — 統合方針と
+  helper 実装 (`observability_init/log_metric/finalize`)
+- `research.experiment.scaffold/SKILL.md`: scaffold 時に観測 backend helper を
+  `src/<pkg>/observability.py` として展開する手順を追加
+
+### Changed (Schema)
+- `tests/schemas/metrics.schema.json`: optional `cost_estimate` block を追加
+  (duration_h, gpu_type, gpu_count, usd, usd_per_hour, pricing_source, estimated_at)
+- `tests/fixtures/metrics_sample.json`: `cost_estimate` の例を追記
+
+### Changed (Documentation)
+- `skills/auto-research/references/error_handling_spec.md`: Phase 6 表に
+  「compute budget 超過」「W&B/MLflow init 失敗」「W&B server 到達不能」の 3 項目を追加
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧を更新
+
+### Notes
+- 後方互換あり。`cost_estimate` block は metrics.json で **optional**、既存 run には
+  影響しない (新規 run 完了時に skill が dispatch されると追記される)。
+- W&B / MLflow / TensorBoard は **完全 opt-in**。環境変数を設定しない既存ユーザーには
+  既存 `events.jsonl` ログ動作が維持される。
+- 価格表は **publicly observable な reference 値**。実費とのずれは
+  `cost_overrides.json` で個別補正してください。
+
 ## [0.4.0] - 2026-05-09 — Cross-Project Comparison & Export
 
 ### Added (Skills)

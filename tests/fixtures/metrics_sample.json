@@ -16,5 +16,14 @@
     "torch_version": "2.5.0",
     "gpu": "NVIDIA A100-SXM4-80GB",
     "num_gpus": 1
+  },
+  "cost_estimate": {
+    "usd": 2.0,
+    "duration_h": 1.0,
+    "gpu_type": "A100-80GB-SXM",
+    "gpu_count": 1,
+    "usd_per_hour": 2.0,
+    "pricing_source": "AWS p4de",
+    "estimated_at": "2026-05-09T15:00:00Z"
   }
 }

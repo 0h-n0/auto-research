@@ -1,0 +1,213 @@
+"""scripts/cost_estimate.py — research.cost.estimate skill backend.
+
+このファイルは reference テンプレ。実装時に rename して使う:
+    cp skills/research.cost.estimate/references/cost_estimate.py.txt \\
+       .research/<slug>/code/scripts/cost_estimate.py
+
+Usage:
+    python cost_estimate.py <slug> [<gpu_price_table.json>]
+
+Inputs:
+    .research/<slug>/STATE.json
+    .research/<slug>/06_RUNS/*/metrics.json
+    .research/<slug>/cost_overrides.json (optional, user override)
+    skills/research.cost.estimate/references/gpu_price_table.json (default SoT)
+
+Outputs:
+    .research/<slug>/06_RUNS/*/metrics.json (cost_estimate ブロック追記)
+    .research/<slug>/06_COST_REPORT.md
+    stdout: 警告メッセージ (budget watch)
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def load_pricing(plugin_root: Path, project_dir: Path) -> dict:
+    """ユーザー上書き > 同梱テーブルの優先順で価格表を解決."""
+    override_path = project_dir / "cost_overrides.json"
+    table_path = (
+        plugin_root
+        / "skills/research.cost.estimate/references/gpu_price_table.json"
+    )
+
+    table = json.loads(table_path.read_text())
+
+    if override_path.exists():
+        override = json.loads(override_path.read_text())
+        for gpu_name, price in override.get("gpu_pricing", {}).items():
+            table["pricing"].setdefault(gpu_name, {})
+            table["pricing"][gpu_name]["on_demand_usd_per_hour"] = price
+            table["pricing"][gpu_name]["sources"] = [
+                f"user override ({override.get('note', 'cost_overrides.json')})"
+            ]
+        table["_user_override"] = True
+    return table
+
+
+def normalize_gpu_name(name: str | None, table: dict) -> str:
+    if not name:
+        return "unknown"
+    if name in table["pricing"]:
+        return name
+    return table["aliases"].get(name, "unknown")
+
+
+def estimate_run_cost(metrics: dict, table: dict) -> dict | None:
+    """metrics.json から cost_estimate ブロックを計算."""
+    elapsed = metrics.get("elapsed_seconds")
+    if not elapsed:
+        return None
+    duration_h = elapsed / 3600.0
+
+    meta = metrics.get("meta", {})
+    gpu_raw = meta.get("gpu", "unknown")
+    gpu_count = meta.get("num_gpus", 1) or 1
+
+    gpu_key = normalize_gpu_name(gpu_raw, table)
+    pricing = table["pricing"].get(gpu_key, {})
+    usd_per_hour = pricing.get("on_demand_usd_per_hour")
+
+    if usd_per_hour is None:
+        return {
+            "usd": None,
+            "duration_h": round(duration_h, 4),
+            "gpu_type": gpu_key,
+            "gpu_count": gpu_count,
+            "usd_per_hour": None,
+            "pricing_source": "unknown gpu — set cost_overrides.json or update gpu_price_table.json",
+            "estimated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    cost = duration_h * usd_per_hour * gpu_count
+    sources = pricing.get("sources", [])
+    return {
+        "usd": round(cost, 4),
+        "duration_h": round(duration_h, 4),
+        "gpu_type": gpu_key,
+        "gpu_count": gpu_count,
+        "usd_per_hour": usd_per_hour,
+        "pricing_source": (
+            sources[0] if sources else "unknown"
+        ),
+        "estimated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def render_report(slug: str, runs: list[dict], state: dict, table: dict) -> str:
+    """COST_REPORT.md の本文を返す."""
+    budget_gpu_h = state.get("compute_budget_gpu_h") or 0
+    budget_usd = None  # 表示用、不正確になりがちなので空欄でも可
+
+    used_gpu_h_succeeded = sum(r["duration_h"] for r in runs if r["status"] == "succeeded" and r["cost_estimate"])
+    used_gpu_h_total = sum(r["duration_h"] for r in runs if r["cost_estimate"])
+    used_usd_succeeded = sum(r["cost_estimate"]["usd"] or 0 for r in runs if r["status"] == "succeeded" and r["cost_estimate"])
+    used_usd_total = sum(r["cost_estimate"]["usd"] or 0 for r in runs if r["cost_estimate"])
+
+    pct = (used_gpu_h_succeeded / budget_gpu_h * 100) if budget_gpu_h else 0
+    if pct >= 100:
+        status_marker = "✗ Over budget"
+    elif pct >= 80:
+        status_marker = "⚠ Caution (80%+)"
+    elif pct >= 50:
+        status_marker = "✓ On track"
+    else:
+        status_marker = "✓ Safe"
+
+    lines = []
+    lines.append(f"# Cost Report — {slug}\n")
+    lines.append(f"Generated: {datetime.now(timezone.utc).isoformat()}\n")
+    lines.append("## Budget vs Actual\n")
+    lines.append("| 項目 | 値 |")
+    lines.append("|------|-----|")
+    lines.append(f"| Budget (Phase 1) | {budget_gpu_h} GPU-h |")
+    lines.append(f"| Used GPU-h (succeeded runs only) | {used_gpu_h_succeeded:.1f} GPU-h |")
+    lines.append(f"| Used GPU-h (incl. failed) | {used_gpu_h_total:.1f} GPU-h |")
+    lines.append(f"| Estimated USD (succeeded) | ${used_usd_succeeded:.2f} |")
+    lines.append(f"| Estimated USD (total) | ${used_usd_total:.2f} |")
+    if budget_gpu_h:
+        rem = budget_gpu_h - used_gpu_h_succeeded
+        lines.append(f"| Budget remaining | {rem:.1f} GPU-h ({100 - pct:.1f}%) |")
+    lines.append("")
+    lines.append(f"## Status\n\n{status_marker} — {pct:.1f}% of budget used.\n")
+
+    lines.append("## Per-run breakdown\n")
+    lines.append("| run_id | status | duration | gpu | cost (USD) |")
+    lines.append("|--------|--------|----------|-----|-----------|")
+    for r in sorted(runs, key=lambda x: x["run_id"]):
+        ce = r["cost_estimate"] or {}
+        gpu = f"{ce.get('gpu_type', '?')} × {ce.get('gpu_count', '?')}"
+        cost_str = f"${ce['usd']:.2f}" if ce.get("usd") is not None else "n/a"
+        dur = f"{ce.get('duration_h', 0):.2f} h"
+        lines.append(f"| {r['run_id']} | {r['status']} | {dur} | {gpu} | {cost_str} |")
+    lines.append("")
+    lines.append("## Disclaimer\n")
+    lines.append(
+        "公開価格 (on-demand AWS / Lambda / RunPod 平均) ベースの **estimate**。"
+        "実費は契約・spot/on-demand・region・期間によって異なる。"
+        "正確な値は cloud provider の billing dashboard を参照のこと。"
+    )
+    if table.get("_user_override"):
+        lines.append("")
+        lines.append(
+            "**Note**: `cost_overrides.json` が適用されています。"
+            "ユーザー実契約価格で上書き計算済み。"
+        )
+    return "\n".join(lines)
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <slug>", file=sys.stderr)
+        sys.exit(2)
+
+    slug = sys.argv[1]
+    project_dir = Path(".research") / slug
+    if not project_dir.exists():
+        print(f"ERROR: {project_dir} not found", file=sys.stderr)
+        sys.exit(1)
+
+    plugin_root = Path(__file__).resolve().parents[3]  # adjust if relocated
+    table = load_pricing(plugin_root, project_dir)
+
+    state = json.loads((project_dir / "STATE.json").read_text())
+
+    runs = []
+    for run_dir in sorted((project_dir / "06_RUNS").glob("*/")):
+        metrics_path = run_dir / "metrics.json"
+        status_path = run_dir / "STATUS"
+        if not metrics_path.exists():
+            continue
+        metrics = json.loads(metrics_path.read_text())
+        status = status_path.read_text().strip() if status_path.exists() else "unknown"
+        ce = estimate_run_cost(metrics, table)
+        if ce:
+            metrics["cost_estimate"] = ce
+            metrics_path.write_text(json.dumps(metrics, indent=2, ensure_ascii=False))
+        runs.append({
+            "run_id": metrics.get("run_id", run_dir.name),
+            "status": status,
+            "duration_h": ce["duration_h"] if ce else 0,
+            "cost_estimate": ce,
+        })
+
+    report = render_report(slug, runs, state, table)
+    (project_dir / "06_COST_REPORT.md").write_text(report)
+    print(report)
+
+    # Budget warning to stderr
+    budget = state.get("compute_budget_gpu_h") or 0
+    used = sum(r["duration_h"] for r in runs if r["status"] == "succeeded")
+    if budget and used / budget >= 1.0:
+        print(f"\n[cost.estimate] ✗ OVER BUDGET: {used:.1f}/{budget} GPU-h", file=sys.stderr)
+        sys.exit(3)
+    elif budget and used / budget >= 0.8:
+        print(f"\n[cost.estimate] ⚠ CAUTION: {used:.1f}/{budget} GPU-h ({used/budget*100:.0f}%)", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

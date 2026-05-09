@@ -59,6 +59,17 @@ uv init --package --name {pkg_name}
 
 `src/<pkg>/config.py` を `references/run_config_dataclass.py` から生成。
 
+### 4.5. Observability opt-in (v0.5.0+)
+
+環境変数を検知して該当 backend の helper を `src/<pkg>/observability.py` に展開:
+
+- `WANDB_API_KEY` → `references/observability_setup.md` の wandb 部分を `src/<pkg>/observability.py` に
+- `MLFLOW_TRACKING_URI` → 同 mlflow 部分
+- `TB_LOG_DIR` → 同 tensorboard 部分
+
+未設定なら何もしない (silent no-op)。`pyproject.toml` の `[project.optional-dependencies]` に
+`wandb` / `mlflow` / `tensorboard` extras を追加 (install は `uv sync --extra wandb` 等で opt-in)。
+
 ### 5. train_template.py / test_template.py の展開
 
 `src/<pkg>/train.py` を `references/train_template.py` から生成。
