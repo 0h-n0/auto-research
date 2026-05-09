@@ -7,6 +7,52 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-09 — Production Hardening
+
+### Added (Infrastructure)
+- **`tests/` ディレクトリ** (8 test scripts + 5 STATE.json fixtures + 3 JSON Schemas):
+  `state_schema`, `events_schema`, `metrics_schema`, `hook_smoke`,
+  `init_state_idempotent`, `version_triple`, `json_manifests`, `bash_syntax`,
+  および driver `run_all.sh`。`bash tests/run_all.sh` 全 pass を release 必須条件化。
+- **`.github/workflows/`**:
+  - `lint.yml` — push / PR で `tests/run_all.sh` 全項を実行
+  - `release.yml` — tag (`vX.Y.Z`) push で manifest 三箇所一致 + CHANGELOG エントリ存在を検証
+- **JSON Schemas** (`tests/schemas/`):
+  - `state.schema.json` (`STATE.json`)
+  - `events.schema.json` (`events.jsonl` 1 行)
+  - `metrics.schema.json` (`metrics.json`)
+
+### Added (Governance)
+- `LICENSE` (MIT 全文; これまで `plugin.json` の `"license": "MIT"` のみだった)
+- `CONTRIBUTING.md` (PR/branch/Conventional Commits/レビュー基準)
+- `.github/ISSUE_TEMPLATE/{bug_report,feature_request,installation_issue}.md`
+- `.github/PULL_REQUEST_TEMPLATE.md` (RELEASING.md checklist 埋込)
+- `agents/DISPATCH_MATRIX.md` — 5 subagents × 8 phases の dispatch SoT
+
+### Added (Data infrastructure)
+- `skills/auto-research/references/data_lineage.md` — データ分類表
+  (検証 / retention / git track / 公開方針) の SoT
+- `templates/research-gitignore.txt` — ユーザー側
+  `.gitignore` に追記するテンプレ (checkpoint / cache / dataset を ignore)
+- `scripts/cross_compare.sh <slug1> <slug2> ...` — 複数プロジェクトの primary metric を 1 表で集約
+- `scripts/export_project.sh <slug>` — 共有/公開向けの tar.gz bundle (checkpoint と cache を除外)
+- `skills/research.experiment.run/SKILL.md` に
+  `06_RUNS/INDEX.md` 自動更新 step を追加
+
+### Changed
+- **`.mcp.json`**: 実機検証で匿名スキャフォールドと判明した
+  `huggingface-mcp-server` の同梱を停止。残り 2 (`semantic-scholar`, `github`) は実機起動確認済み。
+  README で代替手段を案内。
+- **`hooks/hooks.json`**: PostToolUse の `timeout` を `5` → `30` 秒に拡大
+- **`hooks/post-experiment-log.sh`**: silent fail を可視化
+  (jq 不在時 / append 失敗時に stderr 警告)。`level=error` のとき `error_type` / `error_message` を含めるよう
+  `events.schema.json` に準拠化
+- `skills/auto-research/SKILL.md`: 関連ドキュメント一覧に `data_lineage.md` と `DISPATCH_MATRIX.md` を追加
+
+### Notes
+- 後方互換あり (既存 `.research/<slug>/` プロジェクトは継続利用可)
+- 既存ユーザーが HF Hub MCP を使っていた場合のみ、ユーザー側 `~/.claude.json` に独自設定を移す必要あり
+
 ## [0.2.1] - 2026-05-09
 
 ### Documentation

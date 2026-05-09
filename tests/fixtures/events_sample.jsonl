@@ -1,0 +1,6 @@
+{"event":"run.started","level":"info","ts":"2026-05-09T10:45:23Z","run_id":"20260509-104523-a1b2c3d-9e8f7d","duration_ms":0,"model_id":"meta-llama/Llama-3.2-3B-Instruct","dtype":"bf16","seed":42}
+{"event":"data.loaded","level":"info","ts":"2026-05-09T10:45:38Z","run_id":"20260509-104523-a1b2c3d-9e8f7d","duration_ms":15234,"n_examples":1000,"split":"test"}
+{"event":"model.loaded","level":"info","ts":"2026-05-09T10:46:12Z","run_id":"20260509-104523-a1b2c3d-9e8f7d","duration_ms":34567,"param_count":3210000000}
+{"event":"eval.metric","level":"info","ts":"2026-05-09T11:45:38Z","run_id":"20260509-104523-a1b2c3d-9e8f7d","duration_ms":3600000,"metric":"acc","value":0.671,"n":1000}
+{"event":"run.succeeded","level":"info","ts":"2026-05-09T11:45:39Z","run_id":"20260509-104523-a1b2c3d-9e8f7d","duration_ms":3600123}
+{"event":"run.failed","level":"error","ts":"2026-05-09T12:00:00Z","run_id":"20260509-120000-a1b2c3d-aaaaaa","duration_ms":230000,"error_type":"OutOfMemoryError","error_message":"CUDA out of memory","error_stack":"Traceback ..."}

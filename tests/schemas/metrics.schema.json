@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0h-n0/auto-research/tests/schemas/metrics.schema.json",
+  "title": "auto-research metrics.json",
+  "description": "Schema for .research/<slug>/06_RUNS/<run_id>/metrics.json. SoT: skills/research.experiment.run/references/run_id_format.md",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "primary"],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}-[0-9a-f]{6}$"
+    },
+    "primary": {
+      "type": "object",
+      "required": ["name", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "value": {"type": "number"},
+        "n": {"type": "integer", "minimum": 0}
+      }
+    },
+    "secondary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "value": {"type": "number"}
+        }
+      }
+    },
+    "per_class": {
+      "type": "object"
+    },
+    "elapsed_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "git_dirty": {"type": "boolean"},
+        "cuda_version": {"type": "string"},
+        "torch_version": {"type": "string"},
+        "gpu": {"type": "string"},
+        "num_gpus": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

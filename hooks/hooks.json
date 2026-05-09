@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/post-experiment-log.sh",
-            "timeout": 5
+            "timeout": 30
           }
         ]
       }

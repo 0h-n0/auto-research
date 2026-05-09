@@ -43,9 +43,10 @@
         (ドリフトを残したまま release しない)
 
 [ ] PII / 秘密情報スキャン (kbu94981, /home/<user>/, secrets, tokens など)
-[ ] hooks/post-experiment-log.sh の bash -n 構文チェック
-[ ] scripts/init_state.sh のべき等性確認 (2 回実行)
-[ ] JSON manifests の jq -e . 検証
+[ ] **`bash tests/run_all.sh` 全 pass** (v0.3.0 から導入。CI でも自動だがローカルでも確認)
+[ ] hooks/post-experiment-log.sh の bash -n 構文チェック (tests に含まれる)
+[ ] scripts/init_state.sh のべき等性確認 (tests に含まれる)
+[ ] JSON manifests の jq -e . 検証 (tests に含まれる)
 [ ] 主要 skill / agent / command が壊れていないか smoke test
 ```
 

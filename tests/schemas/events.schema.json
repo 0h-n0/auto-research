@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0h-n0/auto-research/tests/schemas/events.schema.json",
+  "title": "auto-research events.jsonl line",
+  "description": "Schema for one line of .research/<slug>/06_RUNS/<run_id>/events.jsonl. SoT: skills/research.experiment.run/references/jsonl_event_schema.md",
+  "type": "object",
+  "required": ["event", "level", "ts", "run_id", "duration_ms"],
+  "properties": {
+    "event": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "description": "snake_case + dot 区切り。例: run.started / data.loaded / eval.metric"
+    },
+    "level": {
+      "type": "string",
+      "enum": ["debug", "info", "warning", "error"]
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]{6}-[0-9a-f]{7}-[0-9a-f]{6}|preflight$"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"level": {"const": "error"}}
+      },
+      "then": {
+        "required": ["error_type", "error_message"],
+        "properties": {
+          "error_type": {"type": "string"},
+          "error_message": {"type": "string"},
+          "error_stack": {"type": "string"}
+        }
+      }
+    }
+  ]
+}

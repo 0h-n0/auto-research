@@ -18,8 +18,9 @@ if [[ -z "${HOOK_INPUT}" ]]; then
   exit 0
 fi
 
-# jq が無ければ何もしない
+# jq が無ければ stderr で警告 (silent fail を避ける)
 if ! command -v jq >/dev/null 2>&1; then
+  echo "[auto-research hook] WARN: jq not installed; events.jsonl logging skipped" >&2
   exit 0
 fi
 
@@ -70,19 +71,51 @@ fi
 TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # 1 行 JSON を append (jq -c で確実にエスケープ)
-jq -nc \
-  --arg event "tool.bash.uv_run" \
-  --arg level "$( [[ "${EXIT_CODE}" -eq 0 ]] && echo info || echo error )" \
-  --arg ts "${TS}" \
-  --arg run_id "$(basename "${RUN_DIR%/}")" \
-  --argjson duration_ms "${DURATION_MS}" \
-  --argjson exit_code "${EXIT_CODE}" \
-  --arg cmd "${CMD}" \
-  --arg git_rev "${GIT_REV}" \
-  --arg stdout_tail "${STDOUT_TAIL}" \
-  '{event:$event, level:$level, ts:$ts, run_id:$run_id,
-    duration_ms:$duration_ms, exit_code:$exit_code,
-    cmd:$cmd, git_rev:$git_rev, stdout_tail:$stdout_tail}' \
-  >> "${EVENTS_FILE}" 2>/dev/null || true
+# error の場合は level=error + error_message を含める (events.schema.json 準拠)
+LEVEL=$( [[ "${EXIT_CODE}" -eq 0 ]] && echo info || echo error )
+
+if [[ "${LEVEL}" == "error" ]]; then
+  JSON_LINE=$(jq -nc \
+    --arg event "tool.bash.uv_run" \
+    --arg level "${LEVEL}" \
+    --arg ts "${TS}" \
+    --arg run_id "$(basename "${RUN_DIR%/}")" \
+    --argjson duration_ms "${DURATION_MS}" \
+    --argjson exit_code "${EXIT_CODE}" \
+    --arg cmd "${CMD}" \
+    --arg git_rev "${GIT_REV}" \
+    --arg stdout_tail "${STDOUT_TAIL}" \
+    --arg error_type "BashExitNonZero" \
+    --arg error_message "uv run command exited with code ${EXIT_CODE}" \
+    '{event:$event, level:$level, ts:$ts, run_id:$run_id,
+      duration_ms:$duration_ms, exit_code:$exit_code,
+      cmd:$cmd, git_rev:$git_rev, stdout_tail:$stdout_tail,
+      error_type:$error_type, error_message:$error_message}'
+  )
+else
+  JSON_LINE=$(jq -nc \
+    --arg event "tool.bash.uv_run" \
+    --arg level "${LEVEL}" \
+    --arg ts "${TS}" \
+    --arg run_id "$(basename "${RUN_DIR%/}")" \
+    --argjson duration_ms "${DURATION_MS}" \
+    --argjson exit_code "${EXIT_CODE}" \
+    --arg cmd "${CMD}" \
+    --arg git_rev "${GIT_REV}" \
+    --arg stdout_tail "${STDOUT_TAIL}" \
+    '{event:$event, level:$level, ts:$ts, run_id:$run_id,
+      duration_ms:$duration_ms, exit_code:$exit_code,
+      cmd:$cmd, git_rev:$git_rev, stdout_tail:$stdout_tail}'
+  )
+fi
+
+if [[ -z "${JSON_LINE}" ]]; then
+  echo "[auto-research hook] WARN: failed to build event JSON for ${RUN_DIR}" >&2
+  exit 0
+fi
+
+if ! printf '%s\n' "${JSON_LINE}" >> "${EVENTS_FILE}" 2>/dev/null; then
+  echo "[auto-research hook] WARN: failed to append to ${EVENTS_FILE}" >&2
+fi
 
 exit 0

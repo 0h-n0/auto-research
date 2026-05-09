@@ -1,0 +1,45 @@
+name: release-validation
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y jq
+
+      - name: Tag version matches manifest
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/v}"
+          v1=$(jq -r '.version' .claude-plugin/plugin.json)
+          v2=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
+          v3=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          if [[ "${tag}" != "${v1}" || "${v1}" != "${v2}" || "${v2}" != "${v3}" ]]; then
+            echo "✗ tag (${tag}) and manifests (plugin=${v1}, mp.metadata=${v2}, mp.plugins=${v3}) do not all match" >&2
+            exit 1
+          fi
+          echo "✓ tag and manifests aligned at v${tag}"
+
+      - name: CHANGELOG entry present
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/v}"
+          if grep -qE "^## \[${tag}\]" CHANGELOG.md; then
+            echo "✓ CHANGELOG.md has [${tag}] entry"
+          else
+            echo "✗ CHANGELOG.md missing [${tag}] entry" >&2
+            exit 1
+          fi

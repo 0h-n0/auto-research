@@ -1,0 +1,60 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y jq
+
+      - name: JSON manifests valid
+        run: bash tests/test_json_manifests.sh
+
+      - name: Bash scripts syntactically valid
+        run: bash tests/test_bash_syntax.sh
+
+      - name: Version triple matches + CHANGELOG entry exists
+        run: bash tests/test_version_triple.sh
+
+      - name: STATE.json schema
+        run: bash tests/test_state_schema.sh
+
+      - name: events.jsonl schema
+        run: bash tests/test_events_schema.sh
+
+      - name: metrics.json schema
+        run: bash tests/test_metrics_schema.sh
+
+      - name: init_state.sh idempotent
+        run: bash tests/test_init_state_idempotent.sh
+
+      - name: PostToolUse hook smoke
+        run: bash tests/test_hook_smoke.sh
+
+      - name: README references current version
+        run: |
+          set -euo pipefail
+          version=$(jq -r '.version' .claude-plugin/plugin.json)
+          # 新機能を伴う release では README が当該 version を言及していること
+          # PATCH (0.X.Y → 0.X.Y+1) では README 更新が任意のため警告のみ
+          if grep -qE "v${version}|\\(${version}\\+\\)" README.md; then
+            echo "✓ README references v${version}"
+          else
+            echo "⚠ README does not mention v${version} — confirm this is a behaviour-neutral patch" >&2
+          fi

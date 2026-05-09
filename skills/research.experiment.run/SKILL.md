@@ -99,6 +99,32 @@ description: >
 - baseline との paired bootstrap (seed pair で対応)
 - 表形式で `06_RESULTS.md` に書き出す (実際の検定は `result-statistician` agent が後段で行う)
 
+### 6.5. INDEX.md 自動更新
+
+各 run 完了時 (succeeded / failed どちらも)、`.research/<slug>/06_RUNS/INDEX.md` を再生成する:
+
+```markdown
+# Run Index — <slug>
+
+| run_id | status | primary metric | duration | notes |
+|--------|--------|----------------|----------|-------|
+| 20260509-104523-a1b2c3d-9e8f7d | succeeded | acc=0.671 | 60min | baseline |
+| 20260509-114523-a1b2c3d-3a8b1e | failed | — | 4min | OOM |
+| ... | ... | ... | ... | ... |
+```
+
+これは re-generation 可能 (各 `06_RUNS/<id>/{config.json,metrics.json,STATUS}` を読めば作れる) なので、
+壊れたら delete & regenerate で復旧できる。git track することで人間が PR で diff を見られる。
+
+実装: skill 内で全 `06_RUNS/*/` を Glob し、各 `STATUS`/`metrics.json` を Read して表を組み立てて Write。
+
+### データ retention
+
+- **checkpoints/**: 30 日経過 or 採用 run 以外は削除候補。`scripts/cleanup_checkpoints.sh` (将来) で自動化
+- **events.jsonl**: 90 日経過したら gzip 推奨
+- **失敗 run のディレクトリそのもの**: 削除しない (再現性のため `STATUS=failed` で残す)
+- 詳細は `skills/auto-research/references/data_lineage.md` 参照
+
 ### 7. 進捗表示
 
 ```

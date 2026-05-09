@@ -1,0 +1,37 @@
+# auto-research user-side .gitignore template
+#
+# このテンプレを自分のプロジェクト root の .gitignore に追記してください。
+# checkpoint / 活性キャッシュ / dataset 等の大容量バイナリを誤ってコミットするのを防ぎます。
+#
+# 詳細: skills/auto-research/references/data_lineage.md
+
+# --- バイナリ / 大容量 (絶対に git に入れない) ---
+.research/*/code/cache/
+.research/*/code/data/
+.research/*/06_RUNS/*/checkpoints/
+.research/*/code/results/probe/*.pt
+.research/*/code/analysis/cache/
+
+# --- Python 開発キャッシュ ---
+.research/*/code/__pycache__/
+.research/*/code/**/__pycache__/
+.research/*/code/.pytest_cache/
+.research/*/code/.mypy_cache/
+.research/*/code/.ruff_cache/
+.research/*/code/.venv/
+.research/*/code/uv.lock          # uv.lock は git track 推奨だが、頻繁に変わる場合は ignore も可
+
+# --- Hydra / 一時 ---
+.research/*/code/outputs/
+.research/*/code/multirun/
+
+# --- Jupyter ---
+.research/*/code/notebooks/.ipynb_checkpoints/
+
+# --- 画像メタ (大きい場合) ---
+.research/*/code/wandb/
+.research/*/code/mlruns/
+
+# --- 外部キャッシュ (~/.cache から symlink される場合) ---
+.research/*/code/data/huggingface/
+.research/*/code/data/torch/
