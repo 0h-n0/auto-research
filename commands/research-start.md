@@ -25,7 +25,7 @@ LLM 研究の入口コマンド。`auto-research` skill を起動して Phase 1 
 4. Phase 2 完了で報告:
    - 読解済み論文数
    - MATRIX.md のパス
-   - 次は `/research-design` (Phase 3-4) を実行する旨を案内
+   - 次は `/auto-research:research-design` (Phase 3-4) を実行する旨を案内
 
 ## 制約
 

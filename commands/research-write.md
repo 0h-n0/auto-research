@@ -34,7 +34,7 @@ allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, WebFetch, Agent]
 
 7. **(LaTeX のみ) ビルド試行**: `pdflatex` を 2-3 回回し、エラーがあれば `paper/build_errors.log` に保存
 
-8. 進捗報告し、次は `/research-review` を案内。
+8. 進捗報告し、次は `/auto-research:research-review` を案内。
 
 ## 出力
 

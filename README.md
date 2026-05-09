@@ -38,7 +38,7 @@ LLM 研究のフルライフサイクルを Claude Code 上で一気通貫で進
 
 ```text
 /plugin list           # 有効なプラグイン一覧
-/help                  # /research-start ... が見えれば成功
+/help                  # /auto-research:research-start ... が見えれば成功
 ```
 
 無効化したいときは `/plugin uninstall auto-research@auto-research`、
@@ -90,12 +90,12 @@ PostToolUse hook と `.mcp.json` は手動マージが必要 (`~/.claude/setting
 以下が表示されれば成功:
 
 ```
-/research-start    新規 LLM 研究プロジェクトを開始 ...
-/research-design   Gap 分析・アイディア抽出と実験設計 ...
-/research-experiment
-/research-write
-/research-review
-/research-status
+/auto-research:research-start    新規 LLM 研究プロジェクトを開始 ...
+/auto-research:research-design   Gap 分析・アイディア抽出と実験設計 ...
+/auto-research:research-experiment
+/auto-research:research-write
+/auto-research:research-review
+/auto-research:research-status
 ```
 
 skill / agent も `/skills` および `Agent` ツールから参照できることを確認:
@@ -137,25 +137,25 @@ find ~/.claude/skills ~/.claude/agents ~/.claude/commands -lname "*my-plugins/au
 ## クイックスタート
 
 ```text
-/research-start "attention sink in long-context Llama"
+/auto-research:research-start "attention sink in long-context Llama"
 # Phase 1 (Topic Framing) → G1
 # Phase 2 (Literature Survey) → MATRIX.md 生成
 
-/research-design
+/auto-research:research-design
 # Phase 3 (Gap & Ideation) → G2
 # Phase 4 (Experiment Design) → G3
 
-/research-experiment
+/auto-research:research-experiment
 # Phase 5 (Scaffold + Baseline TDD)
 # Phase 6 (Run & Analysis)
 
-/research-write
+/auto-research:research-write
 # Phase 7 (Paper Drafting)
 
-/research-review
+/auto-research:research-review
 # Phase 8 (Self-Review) → G4
 
-/research-status
+/auto-research:research-status
 # 現在の Phase / 直近 run / 次のアクション
 ```
 

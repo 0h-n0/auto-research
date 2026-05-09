@@ -39,11 +39,11 @@ Artifacts:
   ✓ 02_SURVEY/MATRIX.md (15 papers)
   ✓ 03_IDEAS.md (3 ideas, adopted: #2)
   ✓ 04_EXPERIMENT_PLAN.md
-  ✗ code/                    (next: /research-experiment)
+  ✗ code/                    (next: /auto-research:research-experiment)
   ✗ 06_RESULTS.md
   ✗ paper/
 
-Next Action: /research-experiment {slug}
+Next Action: /auto-research:research-experiment {slug}
 ```
 
 3. **一覧表示** ($ARGUMENTS 空時):
@@ -58,7 +58,7 @@ Completed (last 5):
   - rlhf-vs-dpo-mmlu-2026  ✓ 2026-04-12
   - ...
 
-Use: /research-status <slug> for details
+Use: /auto-research:research-status <slug> for details
 ```
 
 ## 実装ガイド

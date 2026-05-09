@@ -7,6 +7,21 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-09
+
+### Changed
+- Documented invocation form is now plugin-prefixed: `/auto-research:research-start`
+  (and the five sibling commands). v0.1.2 had switched the displayed form to
+  the bare `/research-start`, but `/help` actually shows the namespaced form
+  whenever the plugin is the canonical owner of the command. The bare form may
+  still work as an alias when there is no name conflict, but the README,
+  CHANGELOG, command files, and `phase_state_machine.md` now uniformly show
+  the namespaced form so that pasted snippets match what `/help` displays.
+
+### Notes
+- No behavioural change. Both `/auto-research:research-start ...` and (when no
+  conflict exists) `/research-start ...` resolve to the same command.
+
 ## [0.1.2] - 2026-05-09
 
 ### Fixed
@@ -14,7 +29,7 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
   the wrong invocation syntax `/research:start` etc. Subdirectory-based command
   namespacing in Claude Code does **not** produce a colon (`/foo:bar`) in the
   invocation — the colon form is purely a `/help` display label. The actual
-  command is `/research-start`, `/research-design`, ..., `/research-status`,
+  command is `/auto-research:research-start`, `/auto-research:research-design`, ..., `/auto-research:research-status`,
   matching the file names under `commands/`.
 - Removed non-standard frontmatter fields (`argument-hint`, `effort`,
   `allowed-tools`) from all 6 `SKILL.md` files. The Claude Code skill spec only
@@ -49,9 +64,9 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 - Five specialist subagents:
   - `paper-deep-reader`, `research-gap-finder`, `experiment-designer`,
     `attention-analyst`, `result-statistician`
-- Six entry-point commands: `/research-start`, `/research-design`,
-  `/research-experiment`, `/research-write`, `/research-review`,
-  `/research-status`.
+- Six entry-point commands: `/auto-research:research-start`, `/auto-research:research-design`,
+  `/auto-research:research-experiment`, `/auto-research:research-write`, `/auto-research:research-review`,
+  `/auto-research:research-status`.
 - `PostToolUse` hook (`post-experiment-log.sh`) that captures every
   `uv run` invocation into `events.jsonl` for reproducibility.
 - Bundled MCP servers: Semantic Scholar, HuggingFace Hub, GitHub.
