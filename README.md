@@ -310,6 +310,66 @@ bash scripts/tinker_run.sh <slug>
 
 本 skill の概念 (single-file edit autonomy / fixed wall-clock budget / val_bpb / `program.md`) は karpathy/autoresearch のアイディア。本プラグインはそれを **8-phase ワークフローに統合する形で自前再実装** (コードの verbatim コピーはなし)。詳細は `skills/research.autonomous.tinker/SKILL.md` の Acknowledgement 節。
 
+## Research Org Swarm Mode (v0.10.0+)
+
+[karpathy/autoresearch](https://github.com/karpathy/autoresearch) の README で **future work** として明記されている "research org code" を具体化した **multi-agent 並列モード**。
+v0.9.0 の単一 agent tinker を 1 単位として、**N agents (default 3) を並列**に走らせ、各 agent には異なる戦略を割り当てて diversity を確保します。
+
+### 5 戦略
+
+| strategy | 担当領域 |
+|----------|---------|
+| `depth-explore` | depth / n_heads / d_model / mlp_ratio (architecture scale) |
+| `lr-explore` | lr / weight_decay / warmup / schedule / optimizer choice |
+| `arch-explore` | attention variant / posenc / norm / activation (architectural ideas) |
+| `batch-explore` | batch / grad_accum / seq_len (throughput vs gradient noise) |
+| `random-restart` | 完全ランダム sampling (局所解突破) |
+
+### Quick start
+
+```bash
+# 1. N agents の workspace を一括 scaffold
+bash scripts/swarm_init.sh <slug> --agents 3
+# → swarm/agent_1/tinker/  (depth-explore)
+# → swarm/agent_2/tinker/  (lr-explore)
+# → swarm/agent_3/tinker/  (arch-explore)
+# → swarm/MANIFEST.json
+
+# 2. データ準備 (agent_1 のみ実行、他 agent は symlink で共有)
+cd .research/<slug>/swarm/agent_1/tinker && uv sync && uv run python prepare.py
+
+# 3. 各 agent を並列に loop (別セッション or Task 並列で)
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_1/tinker
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_2/tinker
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_3/tinker
+
+# 4. 定期的に集約 (cron 1h 推奨)
+bash scripts/swarm_orchestrate.sh <slug>
+# → swarm/SHARED_BEST.json (global winner)
+# → swarm/SWARM_RESULTS.md (集約 table)
+# → swarm/best_train.py (winner snapshot)
+```
+
+### Cross-pollination
+
+- 各 agent は `swarm/best_train.py` (orchestrator が更新する global best) を読める
+- ただし **戦略から逸脱しない範囲で** inspiration として使うのみ
+- `random-restart` agent は cross-pollination **無効** (purity 維持)
+- 各戦略の `program_<strategy>.md` で個別に判断
+
+### Protocol (file-based agent 通信)
+
+- agent は `agent_<id>/` 配下のみ書き込む
+- orchestrator は `swarm/` 配下のみ書き込む (`flock` 排他、atomic write)
+- agent は `swarm/` を read-only
+- 同時 orchestrator 起動は flock で skip (cron で重なっても害なし)
+
+詳細仕様: `skills/research.autonomous.swarm/SKILL.md` および `references/swarm_protocol.md`
+
+### Acknowledgement
+
+本 skill は karpathy/autoresearch README の "research org code" 言及を具体化したもの。コアの単一 agent tinker は v0.9.0 と同じ自前実装を再利用し、orchestrator/protocol/戦略 templates のみ新規追加。詳細は `skills/research.autonomous.swarm/SKILL.md` の Acknowledgement 節。
+
 ## Publishing & Archival (v0.6.0+)
 
 Phase 8 G4 通過後、`research.publish` skill で公開先を選んで一括 upload + DOI 取得:
@@ -453,6 +513,7 @@ bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
 | `research.publish` | HF Hub Datasets / Zenodo upload + DOI 取得 + PUBLICATION.md 生成 (v0.6.0+) |
 | `research.compute.shop` | GPU 提供元のランク推奨 (18 provider catalog、商用 / marketplace / free / academic) (v0.8.0+) |
 | `research.autonomous.tinker` | karpathy 流の autonomous tinker mode (Phase 5-6 alt: agent が train.py を反復編集、固定 wall-clock budget で val_bpb 最小化) (v0.9.0+) |
+| `research.autonomous.swarm` | N agents 並列の research org mode (v0.10.0+、5 戦略 / orchestrator 集約 / cross-pollination 制御) |
 
 ### Subagents
 

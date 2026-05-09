@@ -56,6 +56,19 @@
 
 karpathy/autoresearch (March 2026, MIT) の単一ファイル編集自律ループ概念を、本プラグインの 8-phase 規律に統合した形。詳細は `skills/research.autonomous.tinker/SKILL.md`。
 
+### Phase 5-6 — Swarm Mode (multi-agent, v0.10.0+)
+
+`04_EXPERIMENT_PLAN.md` の `mode: tinker-swarm` 選択時、N agents (default 3) を並列に走らせる research org モード:
+
+| Phase | dispatch される skill / script | 入力 | 期待出力 | 注 |
+|-------|-------------------------------|------|----------|-----|
+| 5 (Scaffold alt) | `research.autonomous.swarm` skill + `scripts/swarm_init.sh` | `04_EXPERIMENT_PLAN.md` mode=tinker-swarm + `--agents N --strategies a,b,c` | `.research/<slug>/swarm/agent_<id>/tinker/` × N + `swarm/MANIFEST.json` | tinker workspace を agent ごとに展開、data は symlink 共有 |
+| 6 (Run alt, parallel) | (no agent — 各 agent が独立 autonomous loop) | 各 agent の strategy 別 program.md、`tinker_run.sh --workspace swarm/<aid>/tinker` | 各 agent の `BEST.json` + `RESULTS.md` + history snapshots | 戦略別に agent ごとに独立、cross-pollination は agent の判断 |
+| 6 (Aggregator) | `scripts/swarm_orchestrate.sh` (cron 1h or manual) | 全 agent の BEST.json | `swarm/SHARED_BEST.json`, `swarm/SWARM_RESULTS.md`, `swarm/best_train.py` | flock 排他、atomic write、events.jsonl に `swarm.consensus` 追記 |
+| 7 (Paper) | `research.paper.draft` skill | `swarm/SWARM_RESULTS.md` + winner agent の best train.py | "swarm research journal" ドラフト | 通常 path と同じ skill |
+
+karpathy/autoresearch README で **future work** として明記された "research org code" を具体化したもの。詳細は `skills/research.autonomous.swarm/SKILL.md`。
+
 ## 重複境界 (anti-pattern)
 
 各 agent が「自分の領分」を超えそうな場合、ここに従って handoff する:

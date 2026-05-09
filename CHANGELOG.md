@@ -7,6 +7,62 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-05-10 — Research Org Swarm Mode (karpathy multi-agent)
+
+### Acknowledgement
+本リリースは [karpathy/autoresearch](https://github.com/karpathy/autoresearch) の README で
+**future work** として明記されている "research org code" (複数 agent 並列の自律探索組織) のアイディアを
+具体化したもの。v0.9.0 の単一 agent tinker (`research.autonomous.tinker`) を 1 単位として再利用し、
+N agents を並列に走らせる **swarm mode** を追加。
+
+### Added (Skill)
+- **`research.autonomous.swarm` skill** (`skills/research.autonomous.swarm/`):
+  N agents (default 3、最大 5 種類戦略 +duplicate) を並列に走らせる research org モード。
+  各 agent に異なる戦略 (`depth-explore` / `lr-explore` / `arch-explore` / `batch-explore` /
+  `random-restart`) を割り当てて diversity 確保。
+  - SoT: `references/swarm_strategies.md` + `references/swarm_protocol.md`
+    (file-based agent 通信、flock + atomic write)
+  - 5 戦略別 program.md テンプレ (`program_<strategy>.md`)
+
+### Added (Scripts)
+- **`scripts/swarm_init.sh`**: N agents の workspace を一括 scaffold (`--agents N`、
+  `--strategies a,b,c`、`--allow-duplicate`、agent_<id>/tinker/ に v0.9.0 構造を展開、
+  data/ symlink、`swarm/MANIFEST.json` 生成)
+- **`scripts/swarm_orchestrate.sh`**: 全 agent の BEST.json を集約 (cron 1h 推奨)
+  flock 排他、atomic write、`swarm/SHARED_BEST.json` + `swarm/SWARM_RESULTS.md` +
+  `swarm/best_train.py` を更新、`events.jsonl` に `swarm.consensus` 追記
+
+### Added (Tests)
+- **`tests/test_swarm_smoke.sh`** (25 sub-tests):
+  ファイル存在 (10) + bash syntax (2) + strategy header (5) + karpathy attribution (2) +
+  scaffold smoke (1) + manifest valid (1) + orchestrator no-warning (1) +
+  SHARED_BEST valid (1) + invalid strategy reject (1) + duplicate strategy reject (1)
+- 全テスト 10 → **11** (swarm_smoke 追加)
+
+### Phase 連携
+- v0.9.0 と同じく Phase 5-6 alt mode、`04_EXPERIMENT_PLAN.md` の `mode: tinker-swarm` で分岐
+- `research.cost.estimate` で N agents × overnight USD を試算
+- `research.compute.shop` で multi-GPU box を推奨可能
+- Phase 7 では `swarm/SWARM_RESULTS.md` + winner train.py を `research.paper.draft` に渡して
+  "swarm research journal" として論文化
+
+### Changed (Documentation)
+- `README.md` / `README.en.md`: "Research Org Swarm Mode (v0.10.0+)" 節 + skills 表 1 行
+- `skills/auto-research/SKILL.md`: 関連ドキュメントに swarm + (見落としていた) tinker SKILL.md
+  への cross-link 追加
+- `skills/auto-research/references/error_handling_spec.md`: swarm failure modes 5 項目追加
+  (1 agent diverged 連続 30 / 同時 orchestrator / data symlink 破損 / 不正戦略 / duplicate 戦略)
+- `agents/DISPATCH_MATRIX.md`: Phase 5-6 alt mode (swarm) を tinker と並列で記載
+
+### Notes
+- **完全 opt-in / 後方互換**: swarm mode は `mode: tinker-swarm` 明示時のみ。既存ワークフロー
+  (8-phase / single-agent tinker) はそのまま動作。
+- karpathy attribution は SKILL.md / swarm_init.sh / swarm_protocol.md / 5 program 雛形 / README ja+en /
+  CHANGELOG / DISPATCH_MATRIX / tinker_loop.md 等の **計 12+ 箇所** で明示。
+- Cross-pollination は agent の戦略に sub-ordinate。orchestrator は強制しない。
+  `random-restart` agent は global best を読まない (purity 維持)。
+- 価格 / 試算は v0.5.0 / v0.8.0 の既存機能を再利用 (catalog 修正不要)。
+
 ## [0.9.0] - 2026-05-10 — Autonomous Tinker Mode (karpathy-inspired)
 
 ### Acknowledgement

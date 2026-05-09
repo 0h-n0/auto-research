@@ -314,6 +314,62 @@ See `skills/research.autonomous.tinker/SKILL.md` and `references/tinker_loop.md`
 
 The core ideas (single-file edit autonomy, fixed wall-clock budget, `val_bpb`, `program.md`) are Karpathy's. This plugin re-implements them in our own minimal GPT (~280 lines) so they fit our 8-phase workflow — there is no verbatim code copy. See `skills/research.autonomous.tinker/SKILL.md` for the full attribution block.
 
+## Research Org Swarm Mode (v0.10.0+)
+
+Materializes the **"research org code"** future-work hint from karpathy/autoresearch's README: run **N agents in parallel** (default 3), each with a different exploration strategy, and let an orchestrator merge their bests.
+
+### Five strategies
+
+| strategy | what it tunes |
+|----------|---------------|
+| `depth-explore` | depth / n_heads / d_model / mlp_ratio (architecture scale) |
+| `lr-explore` | lr / weight_decay / warmup / schedule / optimizer choice |
+| `arch-explore` | attention variant / posenc / norm / activation (qualitative architecture) |
+| `batch-explore` | batch / grad_accum / seq_len (throughput vs gradient noise) |
+| `random-restart` | uniform random sampling (escape local optima) |
+
+### Quick start
+
+```bash
+# 1. Scaffold N agents with one command
+bash scripts/swarm_init.sh <slug> --agents 3
+# → swarm/agent_1/tinker/  (depth-explore)
+# → swarm/agent_2/tinker/  (lr-explore)
+# → swarm/agent_3/tinker/  (arch-explore)
+# → swarm/MANIFEST.json
+
+# 2. Prepare data once (agent_1 only — others symlink the data/ dir)
+cd .research/<slug>/swarm/agent_1/tinker && uv sync && uv run python prepare.py
+
+# 3. Run each agent's loop (separate Claude Code sessions or parallel Tasks)
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_1/tinker
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_2/tinker
+bash scripts/tinker_run.sh <slug> --workspace swarm/agent_3/tinker
+
+# 4. Aggregate periodically (cron every hour, or manual)
+bash scripts/swarm_orchestrate.sh <slug>
+# → swarm/SHARED_BEST.json (global winner)
+# → swarm/SWARM_RESULTS.md (aggregated table)
+# → swarm/best_train.py (winner snapshot)
+```
+
+### Cross-pollination
+
+Each agent **may read** `swarm/best_train.py` for inspiration, but **only within its own strategy** (e.g. `arch-explore` borrows architectural ideas, not lr settings). `random-restart` is the exception: it deliberately ignores the global best to preserve sampling purity. Per-strategy rules are spelled out in each `program_<strategy>.md`.
+
+### File-based protocol
+
+- Agents write only under `agent_<id>/`
+- Orchestrator writes only under `swarm/` with `flock` exclusion + atomic rename
+- Agents see `swarm/` as read-only
+- Concurrent orchestrator launches no-op via `flock` — safe to run from cron
+
+Spec: `skills/research.autonomous.swarm/SKILL.md` and `references/swarm_protocol.md`
+
+### Acknowledgement
+
+The "research org" multi-agent design is the future-work hint from karpathy/autoresearch's README, materialized here on top of v0.9.0's single-agent tinker. The single-agent runner (`tinker_run.sh`) is reused unchanged — only the orchestrator, file-based protocol, and five strategy templates are new. See `skills/research.autonomous.swarm/SKILL.md` for the full attribution.
+
 ## Cost & Observability (v0.5.0+)
 
 ### Cost tracking
