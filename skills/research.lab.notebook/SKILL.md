@@ -32,11 +32,16 @@ description: >
 1. **Hybrid 構造**:
    - `LAB_NOTEBOOK.md` (slug 直下、living、時系列航海日誌)
    - `06_RUNS/<run_id>/POSTMORTEM.md` (per-failure、再現可能な失敗カード)
+   - `LAB_NOTEBOOK_INDEX.md` (auto-gen、tag 逆引き、v0.15.0+)
 2. **双方向 link**: LAB_NOTEBOOK の Phase 6 entry → POSTMORTEM、POSTMORTEM の Cross-references → LAB_NOTEBOOK
 3. **再現性 7-tuple**: code rev / config / deps (uv.lock) / seed / data hash / hardware / reproduce.sh
 4. **Hypothesis space draft**: events.jsonl + error.txt から 3-5 候補を agent draft、user polish
 5. **idempotent**: `<!-- agent-managed:Phase=N -->` marker で人手編集保護、再 invoke で skip
 6. **Rejected ideas を捨てない**: `03_REJECTED_IDEAS.md` に reason + future revisit conditions
+7. **Decision journal (v0.15.0+、Light touch)**: Phase 3 / 4 で "予測 / 信念 / 仮定" を記録、Phase 6 で実測との Predicted vs Actual を agent draft (Annie Duke 由来)
+8. **Tag system (v0.15.0+、Hybrid)**: controlled vocabulary 28 個 + 自由 tag、INDEX.md で逆引き (FAIR 由来)
+9. **Cross-project Lessons DB (v0.15.0+)**: `~/.research-lessons.json` で全プロジェクト横断の institutional memory
+10. **Blameless culture (v0.15.0+)**: POSTMORTEM 冒頭 callout、Anti-pattern 明示 (Google SRE 由来)
 
 ## 入力 / 出力
 
@@ -62,11 +67,12 @@ description: >
 
 | Phase | 起動 | 動作 |
 |-------|------|------|
-| 3 (G2 通過後) | auto | `IDEAS.md` の adopted vs rejected を読み、rejected idea を `03_REJECTED_IDEAS.md` に保存 + LAB_NOTEBOOK に Phase 3 entry |
-| 5 (TDD Red) | manual (任意) | LAB_NOTEBOOK に short note 追加 (test failure の hypothesis + verified by) |
-| 6 (run 完了後) | auto | failed run があれば各々について POSTMORTEM 下書き + reproduce.sh + uv.lock snapshot + LAB_NOTEBOOK entry。成功 run も 1 行 entry |
+| 3 (G2 通過後) | auto | `IDEAS.md` の adopted vs rejected を読み、rejected idea を `03_REJECTED_IDEAS.md` に保存 + LAB_NOTEBOOK Phase 3 entry + **Decision journal block** (v0.15.0+) + **Tags** |
+| 4 (G3 通過後、v0.15.0+) | auto | LAB_NOTEBOOK Phase 4 entry を新規追加 (Predicted ablation winner / Predicted significance / Confidence / Assumptions ≤3 + Tags) |
+| 5 (TDD Red) | manual (任意) | LAB_NOTEBOOK に short note 追加 (test failure の hypothesis + verified by + Tags) |
+| 6 (run 完了後) | auto | failed run があれば各々について POSTMORTEM 下書き (冒頭 **Blameless callout**、v0.15.0+) + reproduce.sh + uv.lock snapshot + LAB_NOTEBOOK entry。成功 run も 1 行 entry。**Phase 6 metacognition entry** (Predicted vs Actual + Surprise score + What I missed、v0.15.0+) + LAB_NOTEBOOK_INDEX.md re-gen |
 | 7 (paper.draft) | — | (本 skill は invoke しない、paper.draft が DRAFT.md の Limitations 節で LAB_NOTEBOOK Lessons を読む) |
-| 8 (Review) | auto | LAB_NOTEBOOK の Lessons を `08_REVIEW.md` に統合 |
+| 8 (Review) | auto | LAB_NOTEBOOK の Lessons を `08_REVIEW.md` に統合 + **Lessons DB** (`~/.research-lessons.json`) に top 3 lessons append (v0.15.0+) + INDEX re-gen |
 
 ## ファイル雛形
 
@@ -78,6 +84,10 @@ description: >
 | Hypothesis space draft rule | `references/hypothesis_table_rules.md` |
 | 再現性 checklist | `references/failure_reproducibility_checklist.md` |
 | Phase × 動作 SoT | `references/phase_notebook_map.md` |
+| **Decision journal** (Light touch、v0.15.0+) | `references/decision_journal_template.md` |
+| **Tag taxonomy** (Hybrid、v0.15.0+) | `references/tag_taxonomy.md` |
+| **Lessons DB schema** (v0.15.0+) | `references/lessons_db_schema.md` |
+| **Blameless principles** (v0.15.0+) | `references/blameless_principles.md` |
 
 ## Hypothesis space 自動 draft (Phase 6)
 
@@ -139,7 +149,8 @@ invoke 時:
 | `research.experiment.scaffold` | Phase 5 TDD Red 段階で 30 分以上 stuck したら lab.notebook を invoke 推奨 (任意) |
 | `research.paper.scaffold` (v0.13.0) | Phase 7 paper.draft が DRAFT.md の Limitations 節で LAB_NOTEBOOK Lessons を素材に使う (loose coupling) |
 | `research.autonomous.tinker` | tinker_loop の per-iteration 思考 (events.jsonl) を tinker 終了時に lab.notebook へ集約 |
-| `research-gap-finder` (reviewer) | Phase 8 で POSTMORTEM の peer review (将来 v0.15+ feature) |
+| `research-gap-finder` (reviewer) | Phase 8 で POSTMORTEM の peer review (将来 v0.17+ feature) |
+| **`/auto-research:lessons-search`** (v0.15.0+) | `~/.research-lessons.json` を grep + tag filter で検索する slash command |
 
 ## next-step trailer (Phase 6 失敗時)
 
@@ -181,5 +192,11 @@ invoke 時:
 - 雛形: `references/lab_notebook_skeleton.md`, `references/postmortem_template.md`, `references/rejected_ideas_template.md`
 - ルール: `references/hypothesis_table_rules.md`, `references/failure_reproducibility_checklist.md`
 - SoT: `references/phase_notebook_map.md`
+- v0.15.0+ best-practice 取り込み:
+  - `references/decision_journal_template.md` (Annie Duke "How to Decide" Light touch 版)
+  - `references/tag_taxonomy.md` (FAIR Findable 由来、controlled + 自由 tag Hybrid)
+  - `references/lessons_db_schema.md` (`~/.research-lessons.json` cross-project DB)
+  - `references/blameless_principles.md` (Google SRE "Blameless Postmortems" 由来)
 - 引用ルール: `skills/auto-research/references/responsible_research.md` (引用 ≤2 文、PII redaction)
 - 既存 PostToolUse hook: `.claude-plugin/hooks/post-experiment-log.sh` (events.jsonl の生成元)
+- 新 slash command (v0.15.0+): `commands/lessons-search.md`

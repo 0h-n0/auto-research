@@ -203,12 +203,14 @@ arxiv-mcp-agent への依頼:
 
 **3.4 では `1.1 Motivation` / `1.2 Related Work` は touch しない** (人手 polish 尊重)。
 
-**3.5 Lab notebook の seed (v0.14.0+)** — `research.lab.notebook` skill を invoke:
+**3.5 Lab notebook の seed (v0.14.0+ / v0.15.0 拡張)** — `research.lab.notebook` skill を invoke:
 - `03_IDEAS.md` の adopted vs rejected を分離
 - 採択されなかった idea を `03_REJECTED_IDEAS.md` に **full body + rejection reason + future revisit conditions** で保存 (捨てない)
 - `LAB_NOTEBOOK.md` を skeleton から生成 + Phase 3 entry (3 ideas considered, 1 adopted, 2 rejected の判断記録)
+- **Decision journal block (v0.15.0+)**: Phase 3 entry に `Predicted outcome / Confidence (低/中/高) / Key assumptions ≤3` を agent draft (Annie Duke "How to Decide" 由来、Light touch、hindsight bias 防止)
+- **Tags (v0.15.0+)**: entry 末尾に controlled vocabulary (`#phase-3` `#decision-adopted` 等) + 自由 tag を agent draft
 
-これにより Phase 4 以降で「なぜ B でなく A を選んだか」「B を再考する条件」を即座に参照可能。
+これにより Phase 4 以降で「なぜ B でなく A を選んだか」「B を再考する条件」「採択時に何を予測 / 信じていたか」を即座に参照可能。
 
 ---
 
@@ -250,6 +252,13 @@ experiment-designer への依頼:
 **4.4 論文骨子の更新 (v0.13.0+)** — `research.paper.scaffold` skill を再 invoke:
 - `## 2. Method` (RQ → Hypotheses → Factor Matrix → primary/sanity metric → statistical test)
 - `### 3.1 Setup` (datasets / models / decoding / prompt template / compute budget)
+
+**4.5 Lab notebook の Phase 4 entry (v0.15.0+ 新規)** — `research.lab.notebook` skill を invoke:
+- LAB_NOTEBOOK に **Phase 4 entry** を新規追加 (実験設計の判断記録):
+  - `Plan summary` (1-2 文)
+  - **Decision journal Light touch**: `Predicted ablation winner` / `Predicted statistical significance` / `Confidence` / `Key assumptions ≤3`
+  - Tags (`#phase-4` `#decision-design` `#confidence-{low|medium|high}` 等)
+- これにより Phase 6 で「設計時に何を予測していたか」と実測の Predicted vs Actual 比較が可能
 - `### 3.2 Baselines` (baseline list with refs to refs.bib)
 - 充足度: ~85%
 
@@ -311,16 +320,19 @@ experiment-designer への依頼:
 - `## Abstract` の `[Hypothesis (Phase 6 で検証予定)]` を `[Result]` に置換 (実測値 + 統計検定の閾値)
 - 充足度: ~95%
 
-**6.5 失敗 run の lab notebook 化 (v0.14.0+)** — `research.experiment.run` が `STATUS=failed`
+**6.5 失敗 run の lab notebook 化 (v0.14.0+ / v0.15.0 拡張)** — `research.experiment.run` が `STATUS=failed`
 を書いた直後に **`research.lab.notebook` を auto-trigger**:
 
 - 各 failed run について `06_RUNS/<id>/POSTMORTEM.md` 下書き (Hypothesis space 3-5 候補 draft、§4 Decision / §5 Lessons は user polish 必須)
+- POSTMORTEM 冒頭に **Blameless callout** (v0.15.0+、Google SRE "Blameless Postmortems" 由来)
 - `06_RUNS/<id>/reproduce.sh` を events.jsonl から構築 (`set -euo pipefail` + `uv sync --frozen`)
 - `06_RUNS/<id>/uv.lock` snapshot を project root から copy (deps drift 防止)
-- `LAB_NOTEBOOK.md` に Phase 6 entry (POSTMORTEM への link 含)
+- `LAB_NOTEBOOK.md` に Phase 6 entry (POSTMORTEM への link + Tags 含)
 - 成功 run も LAB_NOTEBOOK に 1 行 entry (時系列の連続性)
+- **Phase 6 metacognition entry (v0.15.0+)**: Phase 3-4 の Decision block (Predicted outcome / Key assumptions) を 06_RESULTS.md と照合し、**Predicted vs Actual 表 + Surprise score (1-5) + What I missed** (blameless で agent draft)
+- **LAB_NOTEBOOK_INDEX.md re-gen (v0.15.0+)**: tag 逆引き (controlled / 自由 tag 別)
 
-これにより **失敗 run も成功 run と同等の reproducibility 7-tuple** (code rev / config / deps / seed / data hash / hardware / reproduce.sh) を持ち、`bash reproduce.sh` で同じ failure を再現可能。
+これにより **失敗 run も成功 run と同等の reproducibility 7-tuple** (code rev / config / deps / seed / data hash / hardware / reproduce.sh) を持ち、`bash reproduce.sh` で同じ failure を再現可能。さらに **hindsight bias を防ぐ metacognition** が自動生成される。
 
 **6.6 進捗表示**:
 ```
@@ -375,12 +387,14 @@ experiment-designer への依頼:
 
 並列で `gemini` skill を invoke し「直近 1 週間の関連最新論文」を確認、出てきたら Related Work に追加。
 
-**8.1.5 Lessons 統合 (v0.14.0+)** — `research.lab.notebook` skill を再 invoke:
-- `LAB_NOTEBOOK.md` の Phase 3-6 entries (特に POSTMORTEM §5 Lessons 集約) から **top 3 lessons** を抽出
+**8.1.5 Lessons 統合 (v0.14.0+ / v0.15.0 拡張)** — `research.lab.notebook` skill を再 invoke:
+- `LAB_NOTEBOOK.md` の Phase 3-6 entries (特に POSTMORTEM §5 Lessons + Phase 6 metacognition の Generalizable insight 集約) から **top 3 lessons** を抽出
 - `08_REVIEW.md` に `## Lessons learned` 節として **追記** (上書きしない)
 - `03_REJECTED_IDEAS.md` の "Future revisit conditions" を見直し、archive 候補を提示
+- **Lessons DB append (v0.15.0+)**: `~/.research-lessons.json` (user home、全プロジェクト共通) に top 3 lessons を atomic append (id 衝突 skip、idempotent)。schema は `lessons_db_schema.md` 準拠
+- **LAB_NOTEBOOK_INDEX.md re-gen (v0.15.0+)**: tag 逆引き表を再生成
 
-これにより Phase 8 review が「失敗からの学び」も含めた総括になり、次プロジェクトの起点になる。
+これにより Phase 8 review が「失敗からの学び」も含めた総括になり、`/auto-research:lessons-search` で過去プロジェクトの institutional memory も検索可能、次プロジェクトの起点になる。
 
 **8.2 ユーザー確認 — Gate G4 (対話 4 回目)**:
 

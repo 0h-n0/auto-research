@@ -9,35 +9,44 @@ auto-research SKILL の dispatch 設定は本表に従う。
 |-------|---------|------|--------|-------------|
 | 1 (Brief) | — | (no-op) | LAB_NOTEBOOK.md は Phase 1 では作らない (内容が空でしか書けない) | — |
 | 2 (Survey) | — | (no-op) | LAB_NOTEBOOK.md は Phase 2 でも作らない (Phase 3 で初期化) | — |
-| 3 (Idea, G2 通過後) | `STATE.json.G2=pass` | **auto** | (1) `03_IDEAS.md` の adopted/rejected 分離 → `03_REJECTED_IDEAS.md` 生成/追記、(2) `LAB_NOTEBOOK.md` を skeleton から生成 + Phase 3 entry | `03_REJECTED_IDEAS.md`、`LAB_NOTEBOOK.md` |
-| 4 (Plan, G3 通過後) | — | (no-op) | LAB_NOTEBOOK は touch しない (重大な思考 event なし) | — |
-| 5 (Scaffold + TDD) | TDD Red 30 分 stuck | **manual (任意)** | LAB_NOTEBOOK に short note (test failure + hypothesis + verified by) | `LAB_NOTEBOOK.md` |
-| 6 (Run) | run 完了 (success/failed 両方) | **auto** | failed run があれば各々: POSTMORTEM 下書き + `reproduce.sh` + `uv.lock` snapshot + LAB_NOTEBOOK entry。成功 run は LAB_NOTEBOOK に 1 行 entry | `06_RUNS/<id>/POSTMORTEM.md`、`06_RUNS/<id>/reproduce.sh`、`06_RUNS/<id>/uv.lock`、`LAB_NOTEBOOK.md` |
+| 3 (Idea, G2 通過後) | `STATE.json.G2=pass` | **auto** | (1) `03_IDEAS.md` の adopted/rejected 分離 → `03_REJECTED_IDEAS.md` 生成/追記、(2) `LAB_NOTEBOOK.md` を skeleton から生成 + Phase 3 entry + **Decision journal block** (v0.15.0+) + **Tags** | `03_REJECTED_IDEAS.md`、`LAB_NOTEBOOK.md` |
+| 4 (Plan, G3 通過後) | `STATE.json.G3=pass` | **auto** (v0.15.0+) | LAB_NOTEBOOK に Phase 4 entry を新規追加 (実験設計の Predicted ablation winner / Predicted significance / Confidence / Assumptions ≤3 + Tags) | `LAB_NOTEBOOK.md` |
+| 5 (Scaffold + TDD) | TDD Red 30 分 stuck | **manual (任意)** | LAB_NOTEBOOK に short note (test failure + hypothesis + verified by + Tags) | `LAB_NOTEBOOK.md` |
+| 6 (Run) | run 完了 (success/failed 両方) | **auto** | failed run があれば各々: POSTMORTEM 下書き (冒頭 **Blameless callout** + Tags、v0.15.0+) + `reproduce.sh` + `uv.lock` snapshot + LAB_NOTEBOOK entry + **Phase 6 metacognition entry** (Predicted vs Actual / Surprise / What I missed、v0.15.0+) + LAB_NOTEBOOK_INDEX.md re-gen | `06_RUNS/<id>/POSTMORTEM.md`、`06_RUNS/<id>/reproduce.sh`、`06_RUNS/<id>/uv.lock`、`LAB_NOTEBOOK.md`、`LAB_NOTEBOOK_INDEX.md` |
 | 7 (Paper drafting) | — | (no-op) | 本 skill は invoke しない。`research.paper.draft` (v0.13.0+) が DRAFT.md の Limitations 節で LAB_NOTEBOOK Lessons を読む (loose coupling) | — |
-| 8 (Review) | `08_REVIEW.md` 完成直前 | **auto** | LAB_NOTEBOOK の Lessons (Phase 6 POSTMORTEM の §5 集約) を `08_REVIEW.md` に統合 | `08_REVIEW.md` (追記のみ、上書きしない) |
+| 8 (Review) | `08_REVIEW.md` 完成直前 | **auto** | (1) LAB_NOTEBOOK の Lessons を `08_REVIEW.md` に統合 (既存 v0.14.0)、(2) **Lessons DB** (`~/.research-lessons.json`) に top 3 lessons を append (v0.15.0+)、(3) LAB_NOTEBOOK_INDEX.md を re-gen | `08_REVIEW.md` (追記)、`~/.research-lessons.json`、`LAB_NOTEBOOK_INDEX.md` |
 
 ## 起動方法
 
-### auto-dispatch (Phase 3 / 6 / 8)
+### auto-dispatch (Phase 3 / 4 / 6 / 8)
 
-`skills/auto-research/SKILL.md` の各 Phase 末尾に追加 (v0.14.0+):
+`skills/auto-research/SKILL.md` の各 Phase 末尾に追加 (v0.14.0+ で 3/6/8、v0.15.0+ で 4 追加):
 
 ```markdown
 ### Phase 3 末 (G2 通過後)
 ... (既存 step) ...
-+ research.lab.notebook を invoke (rejected ideas 保存 + LAB_NOTEBOOK Phase 3 entry)
++ research.lab.notebook を invoke (rejected ideas 保存 + LAB_NOTEBOOK Phase 3 entry + Decision journal block (v0.15.0+) + Tags)
+```
+
+```markdown
+### Phase 4 末 (G3 通過後、v0.15.0+ 新規)
+... (既存 step) ...
++ research.lab.notebook を invoke (LAB_NOTEBOOK Phase 4 entry + Decision journal block + Tags)
 ```
 
 ```markdown
 ### Phase 6 末 (RESULTS.md 完成後)
 ... (既存 step) ...
 + research.experiment.run が failed run 検出時に research.lab.notebook を auto-trigger
++ research.lab.notebook が Phase 6 metacognition entry を生成 (Predicted vs Actual + Surprise score + What I missed、v0.15.0+)
++ POSTMORTEM 冒頭に Blameless callout (v0.15.0+)
++ LAB_NOTEBOOK_INDEX.md re-gen (v0.15.0+)
 ```
 
 ```markdown
 ### Phase 8 末 (08_REVIEW.md 直前)
 ... (既存 step) ...
-+ research.lab.notebook を invoke (Lessons 統合)
++ research.lab.notebook を invoke (Lessons 統合 + Lessons DB append (v0.15.0+) + INDEX re-gen)
 ```
 
 ### manual invoke (Phase 5 / その他)

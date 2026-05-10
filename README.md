@@ -565,6 +565,64 @@ idempotent — 再実行しても既存 POSTMORTEM の人手 polish を破壊し
 
 詳細: `skills/research.lab.notebook/SKILL.md` および `references/phase_notebook_map.md`
 
+## Lab Notebook Best Practices (v0.15.0+)
+
+v0.14.0 の `research.lab.notebook` 構造に、外部の研究ノート best practice を取り入れた P0 4 要素 (Decision journal / Tag system / Cross-project Lessons DB / Blameless culture) を追加しました。
+参考元: Annie Duke "How to Decide" (decision journal) / Google SRE "Blameless Postmortems" (blameless) / ELN FAIR guidelines (tags & index) / mlflow & W&B (metadata 慣習)。
+
+### Decision journal (Light touch、Annie Duke 由来)
+
+Phase 3 idea 採択時 / Phase 4 実験設計時に **「予測 / 信念 / 仮定」を記録**、Phase 6 で実測との Predicted vs Actual を auto 生成 (hindsight bias 防止):
+
+```markdown
+**Decision journal (Light touch)**:
+- **Predicted outcome**: primary metric +3-5pp on MMLU baseline
+- **Confidence**: 中 (prior work 5 本の平均改善が +2.5pp)
+- **Key assumptions**:
+  1. 4-factor variance が super-additively compose
+  2. format が dominant (>30% contribution)
+  3. 3-8B model size でも同 pattern
+```
+
+Phase 6 metacognition entry が agent draft で生成 (Surprise score 1-5 + What I missed、blameless で):
+
+```markdown
+| Metric / claim | Predicted | Actual | Surprise |
+|----------------|-----------|--------|----------|
+| primary acc improvement | +3-5pp | +1.2pp | 4 |
+| dominant factor | format | decoding (3B) | 4 |
+```
+
+### Tag system (Hybrid、ELN FAIR 由来)
+
+各 entry に末尾 `Tags: #...` を付与。Controlled vocabulary 28 個 + 自由 tag。`LAB_NOTEBOOK_INDEX.md` を auto-generate (tag 逆引き):
+
+| カテゴリ | tags |
+|---------|------|
+| Failure type | `#oom` `#nan` `#shape-mismatch` `#timeout` `#import-error` `#data-bug` `#convergence-issue` |
+| Outcome | `#hypothesis-confirmed` `#hypothesis-rejected` `#ruled-out` `#inconclusive` `#assumption-reversed` |
+| Process | `#pivot` `#stuck` `#insight` `#peer-discussion` `#decision-adopted` `#decision-rejected` |
+| Phase marker | `#phase-3` `#phase-4` `#phase-5` `#phase-6` `#phase-8` (auto) |
+
+自由 tag (例: `#attention-sink`, `#llama-3b`) は INDEX.md 上で別節管理。
+
+### Cross-project Lessons DB (`~/.research-lessons.json`)
+
+Phase 8 で各プロジェクトの top 3 lessons を **全プロジェクト共通の DB** に atomic append。新プロジェクトの Phase 3 / 6 で類似 failure を検索可能 (institutional memory):
+
+```text
+> /auto-research:lessons-search "memory"               # free text
+> /auto-research:lessons-search --tag #oom              # tag filter
+> /auto-research:lessons-search "format" --phase 6      # phase filter
+> /auto-research:lessons-search --model 3B              # context filter
+```
+
+### Blameless culture (Google SRE 由来)
+
+POSTMORTEM 冒頭に **Blameless callout** を強制挿入。SKILL.md に Anti-pattern (人を責める言葉) と Pre-pattern (システム / プロセスを主語) を明示。失敗の原因はシステム / プロセスに帰属、個人の判断は「その時点の情報で reasonable だったか」の文脈で記述。
+
+詳細: `skills/research.lab.notebook/references/decision_journal_template.md`、`tag_taxonomy.md`、`lessons_db_schema.md`、`blameless_principles.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。

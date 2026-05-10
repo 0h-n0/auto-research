@@ -202,6 +202,152 @@ else
   FAIL=$((FAIL+1))
 fi
 
+# ===== v0.15.0+ checks (Decision journal / Tags / Lessons DB / Blameless) =====
+
+# 13. 4 new reference files exist
+for f in \
+  "${REFS}/decision_journal_template.md" \
+  "${REFS}/tag_taxonomy.md" \
+  "${REFS}/lessons_db_schema.md" \
+  "${REFS}/blameless_principles.md"
+do
+  if [[ -f "$f" ]]; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ missing v0.15.0 reference: $f" >&2; FAIL=$((FAIL+1))
+  fi
+done
+
+# 14. decision_journal_template.md required headings
+DJ="${REFS}/decision_journal_template.md"
+for marker in "Predicted outcome" "Confidence" "Key assumptions" "Surprise score"
+do
+  if grep -qF "${marker}" "${DJ}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ decision_journal_template.md missing required marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 15. tag_taxonomy.md: 4 categories + minimum tag counts
+TT="${REFS}/tag_taxonomy.md"
+for category in "Failure type" "Outcome" "Process" "Phase marker"
+do
+  if grep -qF "${category}" "${TT}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ tag_taxonomy.md missing category: ${category}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 15.5. tag_taxonomy.md must have at least 5 controlled tags from each major category
+for tag in "#oom" "#hypothesis-confirmed" "#pivot" "#phase-3"
+do
+  if grep -qF "${tag}" "${TT}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ tag_taxonomy.md missing controlled tag: ${tag}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 16. lessons_db_schema.md: required JSON fields
+LDB="${REFS}/lessons_db_schema.md"
+for field in "id" "source_slug" "phase" "captured_at" "summary" "tags" "generalizable"
+do
+  if grep -qF "\"${field}\"" "${LDB}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ lessons_db_schema.md missing JSON field: \"${field}\"" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 16.5. lessons_db_schema.md: atomic write + ~/.research-lessons.json reference
+if grep -qF '~/.research-lessons.json' "${LDB}" && grep -qF 'atomic' "${LDB}"; then
+  PASS=$((PASS+1))
+else
+  echo "✗ lessons_db_schema.md missing atomic write or ~/.research-lessons.json reference" >&2
+  FAIL=$((FAIL+1))
+fi
+
+# 17. blameless_principles.md: Anti-pattern + Pre-pattern + Google SRE reference
+BP="${REFS}/blameless_principles.md"
+for marker in "Anti-pattern" "Pre-pattern" "Google SRE"
+do
+  if grep -qF "${marker}" "${BP}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ blameless_principles.md missing marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 18. lab_notebook_skeleton.md: Phase 4 entry example + Decision journal block + Tags
+SKEL="${REFS}/lab_notebook_skeleton.md"
+for marker in "Phase 4 G3" "Decision journal" "Phase 6 metacognition" "Tags:" "LAB_NOTEBOOK_INDEX.md"
+do
+  if grep -qF "${marker}" "${SKEL}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ lab_notebook_skeleton.md missing v0.15.0 marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 19. postmortem_template.md: Blameless callout + Tags
+for marker in "Blameless principle" "Tags:"
+do
+  if grep -qF "${marker}" "${PM}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ postmortem_template.md missing v0.15.0 marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 20. phase_notebook_map.md: Phase 4 dispatch + metacognition + Lessons DB
+for marker in "Phase 4 末" "Phase 6 metacognition" "Lessons DB" "LAB_NOTEBOOK_INDEX.md"
+do
+  if grep -qF "${marker}" "${MAP}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ phase_notebook_map.md missing v0.15.0 marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 21. auto-research SKILL.md: Phase 4.5 dispatch + metacognition + Lessons DB
+for marker in "4.5 Lab notebook" "Phase 6 metacognition" "Lessons DB"
+do
+  if grep -qF "${marker}" "${AUTO_SKILL}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ auto-research SKILL.md missing v0.15.0 marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 22. lessons-search command exists with required frontmatter
+LS_CMD="${ROOT}/commands/lessons-search.md"
+if [[ -f "${LS_CMD}" ]]; then
+  PASS=$((PASS+1))
+  for fm in "description:" "argument-hint:" "allowed-tools:"
+  do
+    if grep -qF "${fm}" "${LS_CMD}"; then
+      PASS=$((PASS+1))
+    else
+      echo "✗ commands/lessons-search.md missing frontmatter: ${fm}" >&2
+      FAIL=$((FAIL+1))
+    fi
+  done
+else
+  echo "✗ missing: commands/lessons-search.md" >&2
+  FAIL=$((FAIL+1))
+fi
+
 echo ""
 echo "test_lab_notebook.sh: ${PASS} pass / ${FAIL} fail"
 

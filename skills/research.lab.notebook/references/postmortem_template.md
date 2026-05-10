@@ -10,6 +10,10 @@
 
 <!-- agent-managed:Phase=6 -->
 
+> **Blameless principle (v0.15.0+)**: 失敗の原因はシステム / プロセス / ツールに帰属する。
+> 個人の判断は「その判断時に得られた情報で reasonable だったか」の文脈で記述。
+> 詳細: `skills/research.lab.notebook/references/blameless_principles.md`
+
 > Failed run の "なぜ・何を試した・次に何を変える" を再現可能な形で残すカード。
 > §1-2 は事実、§3 は仮説空間 (agent draft + user polish)、§4-5 は user 確定必須、§6 は再現性 7-tuple。
 
@@ -115,7 +119,12 @@ bash reproduce.sh  # → 同じ failure を再現する
   - Prior failures (same lineage): <r_xxxx, r_yyyy>
   - Subsequent re-runs: <r_zzzz が H1 に基づく改善>
 - **Original RQ**: `04_EXPERIMENT_PLAN.md` の RQ-N
+
+Tags: `#phase-6` `#oom` <or `#nan` / `#shape-mismatch` / `#timeout` 等> <model / task の自由 tag>
 ```
+
+POSTMORTEM の tag は `tag_taxonomy.md` の Failure type / Outcome カテゴリから controlled tag を選び、
+Phase auto-marker (`#phase-6`) を必須付与する。詳細は `tag_taxonomy.md`。
 
 ## 必須節 (lint check で確認)
 

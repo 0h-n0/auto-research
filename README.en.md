@@ -589,6 +589,63 @@ Idempotent — re-running won't damage user-polished POSTMORTEM sections (protec
 
 Spec: `skills/research.lab.notebook/SKILL.md` and `references/phase_notebook_map.md`
 
+## Lab Notebook Best Practices (v0.15.0+)
+
+v0.15.0 polishes the v0.14.0 lab notebook structure with **4 P0 elements** drawn from external research-notebook best practices: Decision journal (Annie Duke "How to Decide"), Tag system (ELN FAIR guidelines), Cross-project Lessons DB, and Blameless culture (Google SRE "Blameless Postmortems"). Additional inspiration from mlflow / W&B metadata conventions and Open Notebook Science (Bradley 2006).
+
+### Decision journal (Light touch)
+
+At Phase 3 idea adoption and Phase 4 experiment design, record **"prediction / belief / assumptions"**. At Phase 6, an agent-drafted Predicted-vs-Actual table with Surprise score (1-5) and "What I missed" prevents hindsight bias:
+
+```markdown
+**Decision journal (Light touch)**:
+- **Predicted outcome**: primary metric +3-5pp on MMLU baseline
+- **Confidence**: medium (prior work avg improvement +2.5pp across 5 papers)
+- **Key assumptions**:
+  1. 4-factor variance composes super-additively
+  2. format dominates (>30% contribution)
+  3. 3-8B model size shows the same pattern
+```
+
+Phase 6 metacognition entry is auto-drafted (verdicts user-confirmed, blameless wording):
+
+```markdown
+| Metric / claim | Predicted | Actual | Surprise |
+|----------------|-----------|--------|----------|
+| primary acc improvement | +3-5pp | +1.2pp | 4 |
+| dominant factor | format | decoding (3B) | 4 |
+```
+
+### Tag system (Hybrid)
+
+Each entry ends with `Tags: #...`. 28 controlled vocabulary tags + free tags. `LAB_NOTEBOOK_INDEX.md` auto-generated (tag reverse lookup):
+
+| Category | tags |
+|----------|------|
+| Failure type | `#oom` `#nan` `#shape-mismatch` `#timeout` `#import-error` `#data-bug` `#convergence-issue` |
+| Outcome | `#hypothesis-confirmed` `#hypothesis-rejected` `#ruled-out` `#inconclusive` `#assumption-reversed` |
+| Process | `#pivot` `#stuck` `#insight` `#peer-discussion` `#decision-adopted` `#decision-rejected` |
+| Phase marker | `#phase-3` `#phase-4` `#phase-5` `#phase-6` `#phase-8` (auto) |
+
+Free tags (e.g., `#attention-sink`, `#llama-3b`) appear in a separate INDEX section.
+
+### Cross-project Lessons DB (`~/.research-lessons.json`)
+
+At Phase 8, top 3 lessons are atomic-appended to a **per-user, all-projects shared DB**. New projects can search prior failures at Phase 3 / 6 (institutional memory):
+
+```text
+> /auto-research:lessons-search "memory"               # free text
+> /auto-research:lessons-search --tag #oom              # tag filter
+> /auto-research:lessons-search "format" --phase 6      # phase filter
+> /auto-research:lessons-search --model 3B              # context filter
+```
+
+### Blameless culture
+
+POSTMORTEM templates carry a mandatory **Blameless callout** at the top. SKILL.md spells out Anti-patterns (blame language) and Pre-patterns (system / process as subject). Failures are attributed to systems / processes; individual decisions are evaluated as "reasonable given the information available at the time" — a Google SRE practice.
+
+Spec: `skills/research.lab.notebook/references/decision_journal_template.md`, `tag_taxonomy.md`, `lessons_db_schema.md`, `blameless_principles.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.
