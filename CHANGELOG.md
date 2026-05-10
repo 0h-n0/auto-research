@@ -7,6 +7,43 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-11 — Lab Notebook Best-Practice Polish
+
+外部の lab notebook best practice (Annie Duke "How to Decide" / Google SRE "Blameless Postmortems" / ELN FAIR guidelines) を v0.14.0 lab.notebook 構造に取り込み、4 つの P0 要素を追加。
+
+### Added (Skill — references)
+- **`research.lab.notebook/references/decision_journal_template.md`**: Annie Duke "How to Decide" 由来の Light touch decision journal (Phase 3 / 4 entry に Predicted outcome / Confidence / Key assumptions ≤3 を記録)。Phase 6 で予測 vs 実測の Surprise score (1-5) + What I missed entry を auto 生成し、hindsight bias を防ぐ
+- **`research.lab.notebook/references/tag_taxonomy.md`**: Hybrid tag system SoT (controlled vocabulary 28 個 = 4 カテゴリ × 5-8 + 自由 tag)。Failure type / Outcome / Process / Phase marker の 4 カテゴリ + Confidence / Metacognition 補助 (FAIR Findable 由来)
+- **`research.lab.notebook/references/lessons_db_schema.md`**: Cross-project Lessons DB (`~/.research-lessons.json`) の SoT。全プロジェクト共通の institutional memory として top 3 lessons を Phase 8 で atomic append
+- **`research.lab.notebook/references/blameless_principles.md`**: Google SRE "Blameless Postmortems" 由来の宣言文書。Anti-pattern (人を責める言葉) / Pre-pattern (システム / プロセスを主語) を明示
+
+### Added (Command)
+- **`commands/lessons-search.md`**: `/auto-research:lessons-search "<query>" [--tag #foo] [--phase N] [--model SIZE]` で `~/.research-lessons.json` を free text + tag + phase + model filter で検索
+
+### Changed
+- `auto-research/SKILL.md`: Phase 3.5 拡張 (Decision journal block + Tags 追加)、Phase 4.5 新規 dispatch (LAB_NOTEBOOK Phase 4 entry)、Phase 6.5 拡張 (Phase 6 metacognition entry + Blameless callout + INDEX re-gen)、Phase 8.1.5 拡張 (Lessons DB append + INDEX re-gen)
+- `research.lab.notebook/SKILL.md`: 4 新要素 (Decision / Tags / Lessons DB / Blameless) を「設計の核」と Phase × 動作表に統合
+- `research.lab.notebook/references/lab_notebook_skeleton.md`: Phase 3 entry に Decision journal block、**Phase 4 entry を新規追加**、**Phase 6 metacognition entry を新規追加**、各 entry 末尾に `Tags:`、LAB_NOTEBOOK_INDEX.md auto-gen 仕様
+- `research.lab.notebook/references/postmortem_template.md`: 冒頭に **Blameless callout** + 末尾に Tags (Failure type controlled tag)
+- `research.lab.notebook/references/phase_notebook_map.md`: 動作表に Phase 4 行追加、Phase 6/8 動作に metacognition / Lessons DB / INDEX re-gen を追記
+- `marketplace.json`: description に v0.15.0 機能 (decision journal / tags / lessons DB / blameless) を反映
+
+### Added (Tests)
+- `tests/test_lab_notebook.sh` 拡張: 51 → **96 sub-tests** (新 references 4 つの存在 + 必須 marker + JSON field + Phase 4 / metacognition / Lessons DB の dispatch 言及 + lessons-search command frontmatter)
+- 全テスト pass: `bash tests/run_all.sh` で **15 pass / 0 fail** (test ファイル数は変わらず、test_lab_notebook 内 sub-test が拡張)
+
+### Backward Compatibility
+- 既存 v0.14.0 プロジェクト (LAB_NOTEBOOK.md 持ち) は **そのまま動作**。Decision block / Tags が無い entry は agent が後付け追加可能 (idempotent)
+- v0.13.0 以前のプロジェクト: lab.notebook 自体が無いので影響なし
+- `~/.research-lessons.json` 不在時: lab.notebook が schema v0.15.0 で初期化
+- Tag taxonomy は将来拡張可能 (自由 tag → controlled 昇格は v1.0+ 機能)
+
+### Notes
+- 外部 best practice の参考元: Annie Duke "How to Decide" (decision journal)、Google SRE book Ch."Postmortem Culture" (blameless)、ELN FAIR guidelines (tags / index)、Open Notebook Science (Bradley 2006、negative results 積極記録は v0.14.0 で既に対応済)、ML experiment tracking (mlflow / W&B、tags / metadata 慣習)
+- Light touch 設計: Decision journal は 3 項目だけ、Tag は 28 controlled、Lessons DB は jq filter で高速検索 (semantic search は v0.17+)
+- Phase 5 TDD Red の lab.notebook invoke は **任意のまま** (v0.14.0 と同じ)
+- ELN guidelines のうち P1 要素 (Provenance trace / ALCOA+ correction / Daily summary) は v0.16+ に保留
+
 ## [0.14.0] - 2026-05-11 — Lab Notebook & Reproducible Failures
 
 ### Added (Skill)

@@ -52,9 +52,40 @@
 - **Why A was selected**: <核となる選択理由、1-2 文>
 - **Trade-off accepted**: <選択することで諦めた何か、1 文>
 - **Dependencies / risks**: <Phase 4 設計に影響する依存>
+
+**Decision journal (Light touch、v0.15.0+)**:
+- **Predicted outcome**: <1 行、定量的 e.g., "primary metric +3-5pp on MMLU baseline">
+- **Confidence**: <低 / 中 / 高> (<理由 1 行>)
+- **Key assumptions** (≤3、numbered):
+  1. <falsifiable claim>
+  2. <...>
+  3. <...>
+
+Tags: `#phase-3` `#decision-adopted` `#confidence-{low|medium|high}` <その他>
 ```
 
-### 2. Phase 5 entry (TDD Red、manual invoke、任意)
+詳細は `decision_journal_template.md` 参照。
+
+### 2. Phase 4 entry (G3 通過時、auto-dispatch、v0.15.0+)
+
+```markdown
+### 2026-05-12 [Phase 4 G3] Experiment design — N factors × M baselines
+
+**Plan summary**: (`04_EXPERIMENT_PLAN.md` 1-2 文要約)
+
+**Decision journal (Light touch)**:
+- **Predicted ablation winner**: <factor 名、e.g., "format (vs order, decoding, subset)">
+- **Predicted statistical significance**: <pass / fail prediction + threshold>
+- **Confidence**: <低 / 中 / 高>
+- **Key assumptions** (≤3):
+  1. <e.g., "n=3 seeds で 95% CI が ±0.5pp 以内">
+  2. <e.g., "compute budget 200 GPU-h で完走">
+  3. <...>
+
+Tags: `#phase-4` `#decision-design` `#confidence-{low|medium|high}` <factor の自由 tag>
+```
+
+### 3. Phase 5 entry (TDD Red、manual invoke、任意)
 
 ```markdown
 ### 2026-05-12 [Phase 5 TDD Red] <test failure 1-line summary>
@@ -65,9 +96,11 @@
 - **Verified by**: <green にした方法、1 文>
 - **Lesson**: <一般化可能な学び、1-2 文>
 - **Stuck duration**: <分単位、目安>
+
+Tags: `#phase-5` `#stuck` <error type の controlled tag、e.g., `#shape-mismatch`>
 ```
 
-### 3. Phase 6 entry (run 完了時、auto-dispatch)
+### 4. Phase 6 entry (run 完了時、auto-dispatch)
 
 成功 run:
 ```markdown
@@ -76,6 +109,8 @@
 - **Config**: `06_RUNS/r_b1c8/config.yaml`
 - **Key insight**: <results.md ハイライト 1-2 文>
 - **Builds on**: <prior failed run があれば: r_a3f2 の hypothesis 確認>
+
+Tags: `#phase-6` `#hypothesis-confirmed` <model / task の自由 tag>
 ```
 
 失敗 run:
@@ -85,9 +120,44 @@
 → See [POSTMORTEM](06_RUNS/r_a3f2/POSTMORTEM.md) for hypothesis space + decision
 **Quick**: batch 16 で OOM 推定。次 r_b1c8 で batch 8 + grad_accum 2 を試す。
 **Reproduce**: `bash 06_RUNS/r_a3f2/reproduce.sh`
+
+Tags: `#phase-6` `#oom` <model / task の自由 tag>
 ```
 
-### 4. Phase 8 entry (Review 完了時、auto-dispatch)
+### 5. Phase 6 metacognition entry (auto-dispatch、v0.15.0+)
+
+`06_RESULTS.md` 完成時に lab.notebook が **agent draft で生成**:
+
+```markdown
+### 2026-05-13 [Phase 6 metacognition] r_a3f2 + r_b1c8 — Predicted vs Actual
+
+**Predicted vs Actual table**:
+
+| Metric / claim | Predicted | Actual | Surprise (1-5) |
+|----------------|-----------|--------|----------------|
+| primary acc improvement | +3-5pp (Phase 3) | +1.2pp | 4 |
+| dominant factor | format (Phase 3 assumption #2) | decoding (3B), format (8B+) | 4 |
+| size invariance | hold across 3-8B (Phase 3 assumption #3) | held only at 7B+ | 3 |
+
+**What I missed** (blameless、`blameless_principles.md` 準拠):
+<1-2 文。例: "format dominance 仮定 (Phase 3 assumption #2) は prior work 5 本の平均
++2.5pp という根拠で reasonable だったが、3B model でのみ decoding setting が prevailing
+とわかった。assumption #2 は 7B+ では成立する (PARTIALLY CONFIRMED)。">
+
+**Generalizable insight**:
+<Lessons DB に保存する候補。1 文。>
+
+**Verdict** (assumption 単位):
+- assumption #1 (super-additive compose): CONFIRMED
+- assumption #2 (format dominant): REFUTED at 3B、PARTIALLY CONFIRMED at 7B+
+- assumption #3 (size invariance): PARTIALLY CONFIRMED
+
+Tags: `#phase-6` `#metacognition` `#predicted-vs-actual` `#hypothesis-rejected` `#assumption-reversed` `#surprise-high`
+```
+
+詳細は `decision_journal_template.md` § Phase 6 metacognition を参照。
+
+### 6. Phase 8 entry (Review 完了時、auto-dispatch)
 
 ```markdown
 ### 2026-05-14 [Phase 8 G4] Review summary — top 3 lessons
@@ -99,7 +169,52 @@
 
 **Cross-link**: [`08_REVIEW.md`](08_REVIEW.md) に統合済み
 **Future revisit**: `03_REJECTED_IDEAS.md` で B / C が将来 candidate (条件: <...>)
+**Lessons DB**: `~/.research-lessons.json` に top 3 lessons append 済 (id 一覧 in `08_REVIEW.md`)
+
+Tags: `#phase-8` `#review-summary` `#lessons-captured`
 ```
+
+### 7. LAB_NOTEBOOK_INDEX.md (auto-gen、v0.15.0+)
+
+Phase 6 / 8 dispatch 時に re-generation。**人手編集不可** (再生成で上書き):
+
+```markdown
+# Lab Notebook Index — <slug>
+
+<!-- agent-managed:lab.notebook v0.15.0 -->
+
+> 自動生成 (Phase 6 / 8 で更新)。LAB_NOTEBOOK.md の各 entry を tag で逆引き。
+> 人手編集は再生成で上書きされます。
+
+## Controlled tags
+
+### Failure type
+
+#### #oom (3 entries)
+- 2026-05-13 [Phase 6 RUN] r_a3f2 — OOM at step 1240 → POSTMORTEM
+- ...
+
+#### #nan (1 entry)
+- ...
+
+### Outcome
+
+#### #hypothesis-rejected (2 entries)
+- 2026-05-13 [Phase 6 metacognition] format dominance assumption reversed
+- ...
+
+(他 controlled tag を同様にグループ化)
+
+## Free tags
+
+### #attention-sink (1 entry)
+- 2026-05-11 [Phase 3 G2] Idea A selected (focus on attention sink)
+
+### #llama-3b (2 entries)
+- ...
+```
+
+詳細は `tag_taxonomy.md` § INDEX.md 自動生成 rule を参照。
 
 ## Idempotency 規則
 
