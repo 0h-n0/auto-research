@@ -76,7 +76,7 @@ description: >
 | `POSTMORTEM.md` (per-failure) | `references/postmortem_template.md` |
 | `03_REJECTED_IDEAS.md` | `references/rejected_ideas_template.md` |
 | Hypothesis space draft rule | `references/hypothesis_table_rules.md` |
-| 再現性 checklist | `references/reproducibility_checklist.md` |
+| 再現性 checklist | `references/failure_reproducibility_checklist.md` |
 | Phase × 動作 SoT | `references/phase_notebook_map.md` |
 
 ## Hypothesis space 自動 draft (Phase 6)
@@ -97,7 +97,7 @@ description: >
 
 ## 再現性 7-tuple
 
-`references/reproducibility_checklist.md` で SoT 化。POSTMORTEM の §6 "Reproducing this failure"
+`references/failure_reproducibility_checklist.md` で SoT 化 (Phase 4 の broad checklist `skills/auto-research/references/reproducibility_checklist.md` とは別物、failed run 再現に特化)。POSTMORTEM の §6 "Reproducing this failure"
 で全項目が揃っているか agent が check:
 
 1. **Code rev**: `events.jsonl.git_rev` (既存)
@@ -179,7 +179,7 @@ invoke 時:
 ## 関連
 
 - 雛形: `references/lab_notebook_skeleton.md`, `references/postmortem_template.md`, `references/rejected_ideas_template.md`
-- ルール: `references/hypothesis_table_rules.md`, `references/reproducibility_checklist.md`
+- ルール: `references/hypothesis_table_rules.md`, `references/failure_reproducibility_checklist.md`
 - SoT: `references/phase_notebook_map.md`
 - 引用ルール: `skills/auto-research/references/responsible_research.md` (引用 ≤2 文、PII redaction)
 - 既存 PostToolUse hook: `.claude-plugin/hooks/post-experiment-log.sh` (events.jsonl の生成元)

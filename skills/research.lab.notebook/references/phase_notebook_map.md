@@ -176,7 +176,7 @@ Phase 8 review
 - LAB_NOTEBOOK 雛形: `lab_notebook_skeleton.md`
 - POSTMORTEM 雛形: `postmortem_template.md`
 - Hypothesis 自動 draft rule: `hypothesis_table_rules.md`
-- 再現性 checklist: `reproducibility_checklist.md`
+- 再現性 checklist (failed run 用): `failure_reproducibility_checklist.md` (Phase 4 broad checklist は `skills/auto-research/references/reproducibility_checklist.md`、別物)
 - Rejected ideas 雛形: `rejected_ideas_template.md`
 - Phase 6 で reproduce.sh + uv.lock 保存: `skills/research.experiment.run/SKILL.md` (v0.14.0+ 拡張)
 - Phase 3/6/8 dispatch: `skills/auto-research/SKILL.md` (v0.14.0+ 拡張)

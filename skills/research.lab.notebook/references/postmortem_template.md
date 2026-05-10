@@ -78,7 +78,7 @@ bash reproduce.sh  # → 同じ failure を再現する
 - OS: <events.jsonl.env.os>
 - uv: `uv.lock` 凍結済 (本ディレクトリ)
 
-**Reproducibility 7-tuple checklist** (`reproducibility_checklist.md` 準拠):
+**Reproducibility 7-tuple checklist** (`failure_reproducibility_checklist.md` 準拠):
 
 - [x] Code rev: `<git_rev>` ✓
 - [x] Config: `config.yaml` ✓
@@ -175,6 +175,6 @@ Phase 8 review 時に POSTMORTEM の §4-5 が空でないか check (将来 lint
 ## 関連
 
 - Hypothesis 自動 draft rule: `hypothesis_table_rules.md`
-- 再現性 checklist: `reproducibility_checklist.md`
+- 再現性 checklist: `failure_reproducibility_checklist.md` (Phase 4 broad checklist の `auto-research/references/reproducibility_checklist.md` とは別物)
 - LAB_NOTEBOOK との link: `lab_notebook_skeleton.md` § Phase 6 entry
 - Phase 7 paper.draft の Limitations 節での再利用: `skills/research.paper.scaffold/SKILL.md`

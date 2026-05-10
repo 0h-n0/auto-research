@@ -116,7 +116,7 @@ description: >
 
 これにより `06_RUNS/<id>/` だけで `bash reproduce.sh` で同じ run を再現可能 (失敗 run も同様)。
 
-詳細は `skills/research.lab.notebook/references/reproducibility_checklist.md` (7-tuple checklist) を参照。
+詳細は `skills/research.lab.notebook/references/failure_reproducibility_checklist.md` (failure-specific 7-tuple checklist) を参照。Phase 4 の broad reproducibility checklist (`skills/auto-research/references/reproducibility_checklist.md`) とは別物で補完関係。
 
 ### 5.6. 失敗 run の lab notebook 化 (v0.14.0+)
 

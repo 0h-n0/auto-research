@@ -6,8 +6,9 @@
 #    (1. What attempted / 2. What happened / 3. Hypothesis space / 4. Decision /
 #     5. Lessons / 6. Reproducing this failure)
 # 3. lab_notebook_skeleton.md に Phase 3/5/6/8 entry の例が含まれる
-# 4. reproducibility_checklist.md に 7-tuple 全項目
+# 4. failure_reproducibility_checklist.md に 7-tuple 全項目
 #    (Code rev / Config / Dependencies / Random seed / Data version / Hardware / Reproduce command)
+#    (Phase 4 の broad reproducibility_checklist.md とは別物)
 # 5. hypothesis_table_rules.md に LIKELY / UNLIKELY / RULED OUT の 3 verdict
 #    かつ最低 5 つの error pattern → H mapping
 # 6. phase_notebook_map.md に Phase 3/5/6/8 行
@@ -35,7 +36,7 @@ for f in \
   "${REFS}/lab_notebook_skeleton.md" \
   "${REFS}/postmortem_template.md" \
   "${REFS}/hypothesis_table_rules.md" \
-  "${REFS}/reproducibility_checklist.md" \
+  "${REFS}/failure_reproducibility_checklist.md" \
   "${REFS}/rejected_ideas_template.md" \
   "${REFS}/phase_notebook_map.md"
 do
@@ -75,24 +76,24 @@ do
   fi
 done
 
-# 4. reproducibility_checklist.md の 7-tuple
-CHECKLIST="${REFS}/reproducibility_checklist.md"
+# 4. failure_reproducibility_checklist.md の 7-tuple
+CHECKLIST="${REFS}/failure_reproducibility_checklist.md"
 for item in "Code rev" "Config" "Dependencies" "Random seed" \
             "Data version" "Hardware" "Reproduce command"
 do
   if grep -qF "${item}" "${CHECKLIST}"; then
     PASS=$((PASS+1))
   else
-    echo "✗ reproducibility_checklist.md missing 7-tuple item: ${item}" >&2
+    echo "✗ failure_reproducibility_checklist.md missing 7-tuple item: ${item}" >&2
     FAIL=$((FAIL+1))
   fi
 done
 
-# 4.5. reproducibility_checklist.md に set -euo pipefail 言及
+# 4.5. failure_reproducibility_checklist.md に set -euo pipefail 言及
 if grep -qF 'set -euo pipefail' "${CHECKLIST}"; then
   PASS=$((PASS+1))
 else
-  echo "✗ reproducibility_checklist.md missing 'set -euo pipefail' requirement" >&2
+  echo "✗ failure_reproducibility_checklist.md missing 'set -euo pipefail' requirement" >&2
   FAIL=$((FAIL+1))
 fi
 

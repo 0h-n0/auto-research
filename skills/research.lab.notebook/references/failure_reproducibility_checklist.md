@@ -111,7 +111,7 @@ PostToolUse hook (`.claude-plugin/hooks/post-experiment-log.sh`) で以下を記
 POSTMORTEM の §6 末尾に以下のチェックリストを agent が **自動生成**:
 
 ```markdown
-**Reproducibility 7-tuple checklist** (`reproducibility_checklist.md` 準拠):
+**Reproducibility 7-tuple checklist** (`failure_reproducibility_checklist.md` 準拠):
 
 - [x] Code rev: `a3f2c8d` ✓
 - [x] Config: `config.yaml` ✓

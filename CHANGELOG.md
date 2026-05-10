@@ -17,7 +17,7 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
   - **Reproducibility 7-tuple**: code rev / config / deps (uv.lock) / seed / data hash / hardware / `reproduce.sh` を必須担保。**失敗 run も bash reproduce.sh で再現可能**
   - **Rejected ideas を捨てない**: `03_REJECTED_IDEAS.md` に full body + rejection reason + future revisit conditions を保存、将来の pivot で再考可能
   - **agent-managed marker**: `<!-- agent-managed:Phase=N -->` で人手編集を保護 (paper.scaffold v0.13.0 と同 pattern)
-  - SoT: `phase_notebook_map.md`、`hypothesis_table_rules.md`、`reproducibility_checklist.md`
+  - SoT: `phase_notebook_map.md`、`hypothesis_table_rules.md`、`failure_reproducibility_checklist.md` (Phase 4 broad checklist `auto-research/references/reproducibility_checklist.md` とは別物、補完関係)
 
 ### Changed
 - `auto-research/SKILL.md`: Phase 3 末 (3.5)、Phase 6 末 (6.5)、Phase 8 (8.1.5) で `research.lab.notebook` を auto-dispatch
