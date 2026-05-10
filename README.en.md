@@ -646,6 +646,59 @@ POSTMORTEM templates carry a mandatory **Blameless callout** at the top. SKILL.m
 
 Spec: `skills/research.lab.notebook/references/decision_journal_template.md`, `tag_taxonomy.md`, `lessons_db_schema.md`, `blameless_principles.md`
 
+## Lab Notebook P1 Polish (v0.16.0+)
+
+v0.16.0 ships the **3 P1 elements** that v0.15.0 deferred. All optional, workflow dispatcher unchanged. Sources: NIH IRP "Keeping Lab Notebooks" (ALCOA+), Open Notebook Science (provenance), traditional paper lab notebook practice (daily entries).
+
+### Provenance trace (optional)
+
+Each LAB_NOTEBOOK entry / POSTMORTEM gets an optional field for the **origin of the thought**:
+
+```markdown
+**Provenance** (optional):
+- **Inspired by**: ~\cite{hong2024chat} (MATRIX.md row #1)
+- **Discussion**: AB @ 2026-05-11
+- **External thread**: https://news.ycombinator.com/item?id=12345
+- **AI assistant**: Claude Sonnet 4.6 @ 2026-05-11
+```
+
+- AI-assistant use **must be disclosed** (NeurIPS / ICLR / ACL LLM-author policy + Open Notebook Science principle)
+- Agent does not infer; user writes
+- Phase 7 paper.draft can later use it for Acknowledgment auto-generation (future v0.17+)
+
+### ALCOA+ correction guideline (traditional lab notebook practice)
+
+> "Correct mistakes, but never remove them." — NIH IRP
+
+In markdown: `~~strike~~` + `<ins>new</ins>` + annotation (reason + initials + date):
+
+```markdown
+The result was ~~3.14~~ <ins>2.71</ins>. (corrected 2026-05-15 by AB, reason: math error)
+```
+
+Git history provides tamper-evidence; the markdown markup is a human-readable navigation aid. **Not lint-enforced** — adopted via education + guidelines.
+
+### Daily summary entry (optional, Light touch 4-prompt)
+
+A daily entry that supplements Phase-event-driven entries. Not fully freeform — a Light touch schema for ease of writing:
+
+```markdown
+### 2026-05-13 [Daily summary]
+
+- **Today's stuck**: lm-eval-harness version drift, 3h with no progress
+- **Today's insight**: harness version pinning is missing from Phase 4 design checklist
+- **Tomorrow's plan**: check GitHub Issues, then try an alternative version
+- **Mood / energy**: 2/5
+
+Tags: `#daily-summary` `#stuck` `#phase-5`
+```
+
+- **Not mandatory daily** — only when you want to
+- Keeps notebook continuity even during Phase 1 / 2 / 7 (where lab.notebook has no event-driven entry)
+- Phase 8 review can later aggregate "Today's insight" / "Today's stuck" for generalizable lessons (future v0.17+)
+
+Spec: `skills/research.lab.notebook/references/provenance_template.md`, `alcoa_correction_guideline.md`, `daily_summary_template.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.

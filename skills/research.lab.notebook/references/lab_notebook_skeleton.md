@@ -61,10 +61,16 @@
   2. <...>
   3. <...>
 
+**Provenance** (任意、v0.16.0+):
+- **Inspired by**: `~\cite{<bibtex-key>}` (例: `~\cite{hong2024chat}`、MATRIX.md row #N)
+- **Discussion**: <人名 initials> @ <YYYY-MM-DD>
+- **External thread**: <URL>
+- **AI assistant**: Claude / ChatGPT @ <YYYY-MM-DD> (任意、開示推奨)
+
 Tags: `#phase-3` `#decision-adopted` `#confidence-{low|medium|high}` <その他>
 ```
 
-詳細は `decision_journal_template.md` 参照。
+詳細: `decision_journal_template.md`、`provenance_template.md`。
 
 ### 2. Phase 4 entry (G3 通過時、auto-dispatch、v0.15.0+)
 
@@ -174,7 +180,24 @@ Tags: `#phase-6` `#metacognition` `#predicted-vs-actual` `#hypothesis-rejected` 
 Tags: `#phase-8` `#review-summary` `#lessons-captured`
 ```
 
-### 7. LAB_NOTEBOOK_INDEX.md (auto-gen、v0.15.0+)
+### 7. Daily summary entry (任意、v0.16.0+、manual invoke)
+
+Phase event 駆動を補完する日次の任意 entry。Light touch 4-prompt schema:
+
+```markdown
+### 2026-05-13 [Daily summary]
+
+- **Today's stuck**: <30 分以上 stuck だったこと、1-2 文。無ければ "N/A">
+- **Today's insight**: <その日の小さな気づき、1-2 文。無ければ "N/A">
+- **Tomorrow's plan**: <翌日着手すること、1 行>
+- **Mood / energy** (任意): <1-5 scale or freeform>
+
+Tags: `#daily-summary` <その日の主活動の自由 tag>
+```
+
+詳細: `daily_summary_template.md`。**毎日強制でない**、書きたい日だけ。
+
+### 8. LAB_NOTEBOOK_INDEX.md (auto-gen、v0.15.0+)
 
 Phase 6 / 8 dispatch 時に re-generation。**人手編集不可** (再生成で上書き):
 

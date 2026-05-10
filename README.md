@@ -623,6 +623,59 @@ POSTMORTEM 冒頭に **Blameless callout** を強制挿入。SKILL.md に Anti-p
 
 詳細: `skills/research.lab.notebook/references/decision_journal_template.md`、`tag_taxonomy.md`、`lessons_db_schema.md`、`blameless_principles.md`
 
+## Lab Notebook P1 Polish (v0.16.0+)
+
+v0.15.0 で Out of Scope に保留した **P1 3 要素** を v0.16.0 で実装。いずれも optional、workflow dispatch 不変。参考元: NIH IRP "Keeping Lab Notebooks" (ALCOA+) / Open Notebook Science (provenance) / 紙 lab notebook 伝統 (daily entry)。
+
+### Provenance trace (思考の出処、任意)
+
+各 entry / POSTMORTEM に出処を optional field で残す:
+
+```markdown
+**Provenance** (任意):
+- **Inspired by**: ~\cite{hong2024chat} (MATRIX.md row #1)
+- **Discussion**: AB @ 2026-05-11
+- **External thread**: https://news.ycombinator.com/item?id=12345
+- **AI assistant**: Claude Sonnet 4.6 @ 2026-05-11
+```
+
+- AI assistant の使用は **開示推奨** (NeurIPS / ICLR / ACL LLM-author ポリシー + Open Notebook Science 由来)
+- agent は推測しない、user 手書きが基本
+- Phase 7 で paper.draft が Acknowledgment auto-gen に活用 (将来 v0.17+)
+
+### ALCOA+ correction guideline (紙 lab notebook 伝統)
+
+> "Correct mistakes, but never remove them." — NIH IRP
+
+markdown で `~~strike~~` + `<ins>new</ins>` + 注釈 (理由 + initials + 日付):
+
+```markdown
+The result was ~~3.14~~ <ins>2.71</ins>. (corrected 2026-05-15 by AB, reason: math error)
+```
+
+Git history で改ざん耐性を担保、markdown は人間可読 navigation aid。**lint 強制せず、教育 + ガイドラインで運用**。
+
+### Daily summary entry (任意、Light touch 4-prompt)
+
+Phase event 駆動を補完する日次 entry。完全フリーフォームではなく Light touch schema で書きやすさを担保:
+
+```markdown
+### 2026-05-13 [Daily summary]
+
+- **Today's stuck**: lm-eval-harness の version 違いで 3h 進展なし
+- **Today's insight**: harness version pinning が Phase 4 design checklist に欠落
+- **Tomorrow's plan**: GitHub Issues 確認 → alternative version で再試行
+- **Mood / energy**: 2/5
+
+Tags: `#daily-summary` `#stuck` `#phase-5`
+```
+
+- **毎日強制でない**、書きたい日だけ
+- Phase 1 / 2 / 7 (lab.notebook event 不在 Phase) でも notebook 連続性
+- Phase 8 review 時に "Today's insight" / "Today's stuck" を generalizable lesson 素材に (将来 v0.17+)
+
+詳細: `skills/research.lab.notebook/references/provenance_template.md`、`alcoa_correction_guideline.md`、`daily_summary_template.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。

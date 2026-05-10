@@ -42,6 +42,9 @@ description: >
 8. **Tag system (v0.15.0+、Hybrid)**: controlled vocabulary 28 個 + 自由 tag、INDEX.md で逆引き (FAIR 由来)
 9. **Cross-project Lessons DB (v0.15.0+)**: `~/.research-lessons.json` で全プロジェクト横断の institutional memory
 10. **Blameless culture (v0.15.0+)**: POSTMORTEM 冒頭 callout、Anti-pattern 明示 (Google SRE 由来)
+11. **Provenance trace (v0.16.0+、任意)**: 各 entry / POSTMORTEM に思考の出処 (paper cite / discussion / URL / AI assistant) を optional field で残す (Open Notebook Science 由来)
+12. **ALCOA+ correction (v0.16.0+、guideline)**: markdown `~~strike~~` + `<ins>new</ins>` で修正履歴、git history で改ざん耐性 (NIH IRP 紙 lab notebook 伝統)
+13. **Daily summary entry (v0.16.0+、任意)**: 日次 entry の Light touch 4-prompt schema (Today's stuck / Today's insight / Tomorrow's plan / Mood)、Phase event 駆動の補完
 
 ## 入力 / 出力
 
@@ -88,6 +91,9 @@ description: >
 | **Tag taxonomy** (Hybrid、v0.15.0+) | `references/tag_taxonomy.md` |
 | **Lessons DB schema** (v0.15.0+) | `references/lessons_db_schema.md` |
 | **Blameless principles** (v0.15.0+) | `references/blameless_principles.md` |
+| **Provenance trace** (v0.16.0+、任意) | `references/provenance_template.md` |
+| **ALCOA+ correction guideline** (v0.16.0+) | `references/alcoa_correction_guideline.md` |
+| **Daily summary entry** (v0.16.0+、任意) | `references/daily_summary_template.md` |
 
 ## Hypothesis space 自動 draft (Phase 6)
 
@@ -197,6 +203,10 @@ invoke 時:
   - `references/tag_taxonomy.md` (FAIR Findable 由来、controlled + 自由 tag Hybrid)
   - `references/lessons_db_schema.md` (`~/.research-lessons.json` cross-project DB)
   - `references/blameless_principles.md` (Google SRE "Blameless Postmortems" 由来)
+- v0.16.0+ P1 polish (任意適用):
+  - `references/provenance_template.md` (Open Notebook Science / 引用倫理由来、思考の出処を残す)
+  - `references/alcoa_correction_guideline.md` (NIH IRP 紙 lab notebook 伝統、`~~strike~~` + git history)
+  - `references/daily_summary_template.md` (日次 entry の Light touch 4-prompt schema)
 - 引用ルール: `skills/auto-research/references/responsible_research.md` (引用 ≤2 文、PII redaction)
 - 既存 PostToolUse hook: `.claude-plugin/hooks/post-experiment-log.sh` (events.jsonl の生成元)
 - 新 slash command (v0.15.0+): `commands/lessons-search.md`

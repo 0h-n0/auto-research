@@ -348,6 +348,95 @@ else
   FAIL=$((FAIL+1))
 fi
 
+# ===== v0.16.0+ checks (Provenance / ALCOA+ / Daily summary) =====
+
+# 23. 3 new v0.16.0 reference files exist
+for f in \
+  "${REFS}/provenance_template.md" \
+  "${REFS}/alcoa_correction_guideline.md" \
+  "${REFS}/daily_summary_template.md"
+do
+  if [[ -f "$f" ]]; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ missing v0.16.0 reference: $f" >&2; FAIL=$((FAIL+1))
+  fi
+done
+
+# 24. provenance_template.md required markers
+PROV="${REFS}/provenance_template.md"
+for marker in "Inspired by" "Discussion" "External thread" "AI assistant"
+do
+  if grep -qF "${marker}" "${PROV}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ provenance_template.md missing marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 25. alcoa_correction_guideline.md required markers
+ALC="${REFS}/alcoa_correction_guideline.md"
+for marker in '~~' '<ins>' "ALCOA" "NIH IRP" "git history"
+do
+  if grep -qF "${marker}" "${ALC}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ alcoa_correction_guideline.md missing marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 26. daily_summary_template.md required prompts (4 prompt schema)
+DAILY="${REFS}/daily_summary_template.md"
+for prompt in "Today's stuck" "Today's insight" "Tomorrow's plan" "Mood"
+do
+  if grep -qF "${prompt}" "${DAILY}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ daily_summary_template.md missing prompt: ${prompt}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 27. lab_notebook_skeleton.md v0.16.0 additions (Provenance field + Daily summary entry)
+for marker in "Provenance" "Daily summary"
+do
+  if grep -qF "${marker}" "${SKEL}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ lab_notebook_skeleton.md missing v0.16.0 marker: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 28. postmortem_template.md §1 Provenance field
+if grep -qF "Provenance" "${PM}"; then
+  PASS=$((PASS+1))
+else
+  echo "✗ postmortem_template.md missing Provenance field" >&2
+  FAIL=$((FAIL+1))
+fi
+
+# 29. phase_notebook_map.md Daily summary cross-phase mention
+if grep -qF "Daily summary" "${MAP}"; then
+  PASS=$((PASS+1))
+else
+  echo "✗ phase_notebook_map.md missing Daily summary cross-phase mention" >&2
+  FAIL=$((FAIL+1))
+fi
+
+# 30. SKILL.md mentions all 3 v0.16.0 elements
+for marker in "Provenance trace" "ALCOA+" "Daily summary"
+do
+  if grep -qF "${marker}" "${SKILL_MD}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ SKILL.md missing v0.16.0 element: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
 echo ""
 echo "test_lab_notebook.sh: ${PASS} pass / ${FAIL} fail"
 

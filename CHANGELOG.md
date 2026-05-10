@@ -7,6 +7,38 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-11 — Lab Notebook P1 Polish
+
+v0.15.0 で Out of Scope に保留した **P1 3 要素** (Provenance trace / ALCOA+ correction guideline / Daily summary entry) を実装。いずれも v0.14.0 / v0.15.0 lab.notebook の **拡張 (optional features)**、workflow dispatch 不変、後方互換。
+
+### Added (Skill — references)
+- **`research.lab.notebook/references/provenance_template.md`**: 思考の出処 (paper cite / discussion / external thread / AI assistant) を各 entry / POSTMORTEM に optional field で残す仕様 (Open Notebook Science 由来、引用倫理 + AI 開示)
+- **`research.lab.notebook/references/alcoa_correction_guideline.md`**: 紙 lab notebook の伝統的 ALCOA+ correction ルール ("correct mistakes, never remove them") を markdown `~~strike~~` + `<ins>new</ins>` + git history で実装するガイドライン (NIH IRP "Keeping Lab Notebooks" 由来)
+- **`research.lab.notebook/references/daily_summary_template.md`**: 日次 entry の Light touch 4-prompt schema (Today's stuck / Today's insight / Tomorrow's plan / Mood)、Phase event 駆動の補完
+
+### Changed
+- `research.lab.notebook/SKILL.md`: 3 新要素 (Provenance / ALCOA+ / Daily) を「設計の核」 (#11-13) + ファイル雛形表 + 関連節 に統合
+- `research.lab.notebook/references/lab_notebook_skeleton.md`: 各 Phase entry に **Provenance** optional field + Daily summary entry の例 (Light touch 4-prompt)
+- `research.lab.notebook/references/postmortem_template.md`: §1 What was attempted の末尾に Provenance optional field
+- `research.lab.notebook/references/phase_notebook_map.md`: Daily entry が Phase 1-8 横断で manual 起動できる旨を追記
+- `marketplace.json`: description に v0.16.0 機能 (provenance / ALCOA+ / daily summary) を反映
+
+### Added (Tests)
+- `tests/test_lab_notebook.sh` 拡張: 96 → **119 sub-tests** (新 references 3 つの存在 + 必須 marker + Provenance field の各 source + ALCOA+ の markdown rule + Daily 4-prompt schema)
+- 全テスト pass: `bash tests/run_all.sh` で **15 pass / 0 fail**
+
+### Backward Compatibility
+- 既存 v0.15.0 プロジェクトは **そのまま動作**。Provenance / Daily entry 不在でも phase_notebook_map の dispatch 動作不変
+- v0.15.0 以前のプロジェクトには影響なし
+- 3 要素ともいずれも **optional** (skip しても workflow 動作)
+- ALCOA+ guideline は **lint 強制せず**、教育 + ガイドラインで運用
+
+### Notes
+- 外部参考元: NIH IRP "Keeping Lab Notebooks: Basic Principles & Best Practices" (ALCOA+)、Open Notebook Science (Bradley 2006、provenance 公開) 、紙 lab notebook 伝統 (daily entry)
+- Provenance の cross-check (refs.bib との整合性 + Acknowledgment auto-gen) は v0.17+ で paper.scaffold 統合候補
+- Daily entry の Phase 8 review 集約 (frequent insight / stuck pattern 検出) は v0.17+ feature
+- workflow dispatcher / auto-trigger は v0.15.0 のまま不変 (3 要素は passive features)
+
 ## [0.15.0] - 2026-05-11 — Lab Notebook Best-Practice Polish
 
 外部の lab notebook best practice (Annie Duke "How to Decide" / Google SRE "Blameless Postmortems" / ELN FAIR guidelines) を v0.14.0 lab.notebook 構造に取り込み、4 つの P0 要素を追加。
