@@ -7,6 +7,37 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-05-11 — Lab Notebook & Reproducible Failures
+
+### Added (Skill)
+- **`research.lab.notebook` skill** (`skills/research.lab.notebook/`):
+  実験 lab notebook + 失敗 postmortem skill。「成功した結果」だけでなく「**何を試して、なぜダメだったか、次に何を変えるか**」を体系的に残す。
+  - **Hybrid 構造**: 単一 living `LAB_NOTEBOOK.md` (時系列航海日誌) + per-failure `06_RUNS/<id>/POSTMORTEM.md` (再現可能な失敗カード)
+  - **Hypothesis space auto-draft**: failed run の events.jsonl + error.txt から 3-5 仮説候補を agent draft、各々に Statement / Evidence / Verdict (LIKELY / UNLIKELY / RULED OUT)
+  - **Reproducibility 7-tuple**: code rev / config / deps (uv.lock) / seed / data hash / hardware / `reproduce.sh` を必須担保。**失敗 run も bash reproduce.sh で再現可能**
+  - **Rejected ideas を捨てない**: `03_REJECTED_IDEAS.md` に full body + rejection reason + future revisit conditions を保存、将来の pivot で再考可能
+  - **agent-managed marker**: `<!-- agent-managed:Phase=N -->` で人手編集を保護 (paper.scaffold v0.13.0 と同 pattern)
+  - SoT: `phase_notebook_map.md`、`hypothesis_table_rules.md`、`failure_reproducibility_checklist.md` (Phase 4 broad checklist `auto-research/references/reproducibility_checklist.md` とは別物、補完関係)
+
+### Changed
+- `auto-research/SKILL.md`: Phase 3 末 (3.5)、Phase 6 末 (6.5)、Phase 8 (8.1.5) で `research.lab.notebook` を auto-dispatch
+- `research.experiment.run/SKILL.md`: 各 run 完了時に `reproduce.sh` + `uv.lock` snapshot を `06_RUNS/<id>/` に保存。`STATUS=failed` 検出時に `research.lab.notebook` を auto-trigger
+- `auto-research/references/next_steps_template.md`: §3.5 (Phase 6 失敗 run 含む混在) trailer 仕様を追加 (POSTMORTEM への link + reproduce 手順)
+
+### Added (Tests)
+- **`tests/test_lab_notebook.sh`** (51 sub-tests): file presence + POSTMORTEM 6 必須節 + LAB_NOTEBOOK Phase 3/5/6/8 entry 例 + reproducibility 7-tuple + Hypothesis 3 verdict + 5 error pattern → H mapping + rejected_ideas 必須節 + dispatch points (auto-research × 3 + experiment.run × 3) + agent-managed marker + Phase 6 trailer
+- 全テスト pass: `bash tests/run_all.sh` で 14 → **15 pass / 0 fail**
+
+### Backward Compatibility
+- 既存プロジェクト (LAB_NOTEBOOK.md 不在) で Phase 1-8 通常動作
+- v0.13.0 以前の `06_RUNS/<id>/` には reproduce.sh / uv.lock が無い → best-effort で reproduce.sh だけ後付け生成 (uv.lock は recover 不能、warning 表示)
+- `research.paper.scaffold` (v0.13.0) は Phase 7 で DRAFT.md の Limitations 節に LAB_NOTEBOOK Lessons を素材として使えるが、必須ではない (loose coupling)
+
+### Notes
+- 科学研究の本質は「成功した結果」だけでなく「失敗の解釈と再現性」にある。本リリースは熟練研究者の lab notebook 文化をワークフローに統合
+- 失敗 run の reproducibility (`bash reproduce.sh`) は v0.14.0 から **成功 run と同等保証** に格上げ
+- Phase 5 TDD Red 段階の lab.notebook invoke は **任意** (30 分以上 stuck したら推奨)
+
 ## [0.13.0] - 2026-05-10 — Paper-First Methodology
 
 ### Added (Skill)

@@ -6,15 +6,15 @@
     "email": "kbu94982@gmail.com"
   },
   "metadata": {
-    "description": "LLM research full-lifecycle automation: literature survey → idea validation → experiment → paper draft (8 phases / 4 gates).",
-    "version": "0.13.0"
+    "description": "LLM research full-lifecycle automation: literature survey → idea validation → experiment → paper draft (8 phases / 4 gates). v0.13.0+ paper-first methodology (early DRAFT.md from Phase 2). v0.14.0+ lab notebook + reproducible failures (POSTMORTEM auto-draft + reproduce.sh).",
+    "version": "0.14.0"
   },
   "plugins": [
     {
       "name": "auto-research",
-      "description": "End-to-end LLM/ML research workflow plugin. Python (uv + PyTorch + HuggingFace) stack with user-gated 8-phase automation. Covers evaluation, agent/tool-use, fine-tuning, prompt/ICL, and mechanistic interpretability (attention internals).",
+      "description": "End-to-end LLM/ML research workflow plugin. Python (uv + PyTorch + HuggingFace) stack with user-gated 8-phase automation. Covers evaluation, agent/tool-use, fine-tuning, prompt/ICL, and mechanistic interpretability (attention internals). Paper-first methodology + lab notebook with reproducible failure postmortems (v0.14.0+).",
       "source": "./",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "author": {
         "name": "0h-n0"
       },

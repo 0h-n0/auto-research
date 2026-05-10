@@ -520,6 +520,75 @@ The **agent-managed marker** (`<!-- agent-managed:Phase=N -->`) protects section
 
 Spec: `skills/research.paper.scaffold/SKILL.md` and `references/phase_section_map.md`
 
+## Lab Notebook & Reproducible Failures (v0.14.0+)
+
+The essence of scientific research isn't just "successful results" — it's the accumulation of "**what did we try, why did it fail, and what should we change next**". The new `research.lab.notebook` skill encodes the seasoned-researcher's lab notebook culture into the workflow and makes **failure itself reproducible**.
+
+### Hybrid structure
+
+| File | Role |
+|------|------|
+| `LAB_NOTEBOOK.md` (under slug root) | Single living document — chronological "thought voyage log". Entries accrue at Phase 3 / 5 / 6 / 8 |
+| `06_RUNS/<id>/POSTMORTEM.md` | Per-failure card (only for failed runs, auto-drafted). Reproduce command + Hypothesis space + Decision + Lessons |
+| `03_REJECTED_IDEAS.md` | Phase 3 rejected ideas with full body + reason + future revisit conditions (revisitable for future pivots) |
+
+LAB_NOTEBOOK and POSTMORTEM cross-link bidirectionally — navigate between overall thinking and individual failure deep-dives.
+
+### Phase × notebook actions
+
+| Phase | Trigger | Action |
+|-------|---------|--------|
+| 3 (after G2) | auto | Save rejected ideas + LAB_NOTEBOOK Phase 3 entry |
+| 5 (TDD Red) | manual (optional) | Short note in LAB_NOTEBOOK (recommended after 30+ min stuck) |
+| 6 (run done) | **auto** | If failed run exists: POSTMORTEM draft + reproduce.sh + uv.lock snapshot + LAB_NOTEBOOK entry. Success runs also get a 1-line entry |
+| 8 (Review) | auto | Integrate LAB_NOTEBOOK Lessons into `08_REVIEW.md` |
+
+### Hypothesis-driven failure post-mortem
+
+POSTMORTEM §3 Hypothesis space is **auto-drafted from events.jsonl + error.txt with 3-5 hypotheses**:
+
+```markdown
+| H | Statement | Evidence | Verdict |
+|---|-----------|----------|---------|
+| H1 | batch_size=16 exceeds 40GB activation memory | events.jsonl:step=1240 gpu_mem=38.45GB | LIKELY |
+| H2 | gradient checkpointing disabled, retains all activations | config.yaml:gradient_checkpointing=false | LIKELY |
+| H3 | data leak (prior step tensor not GC'd) | code review (train.py:L120 zero_grad present) | RULED OUT |
+```
+
+Verdicts are agent-drafted (LIKELY / UNLIKELY / RULED OUT) but **user confirms**. **§4 Decision and §5 Lessons require user polish** (the scientific core).
+
+### Reproducibility 7-tuple for failed runs
+
+Each run (success / failed) auto-saves:
+
+1. **Code rev** (events.jsonl `git_rev`, existing)
+2. **Config** (`06_RUNS/<id>/config.yaml`, existing)
+3. **Dependencies** (`06_RUNS/<id>/uv.lock` snapshot, **new in v0.14.0**)
+4. **Random seed** (events.jsonl, existing)
+5. **Data version** (`data_lineage.md` hash, existing)
+6. **Hardware** (events.jsonl env, existing)
+7. **Reproduce command** (`06_RUNS/<id>/reproduce.sh`, **new in v0.14.0**)
+
+Now `cd 06_RUNS/<id> && bash reproduce.sh` reproduces any run (success **or failed**) with one command.
+
+### Quick start
+
+`research.lab.notebook` is **automatically dispatched** at Phase 3 / 6 / 8 by the auto-research workflow, but you can also call it manually:
+
+```text
+> "Use research.lab.notebook to record this failure for <slug>"
+```
+
+Idempotent — re-running won't damage user-polished POSTMORTEM sections (protected by `<!-- agent-managed:Phase=N -->` marker).
+
+### Backward compatibility
+
+- Projects without `LAB_NOTEBOOK.md` work normally through Phase 1-8
+- Pre-v0.14.0 `06_RUNS/<id>/` directories: best-effort retroactive `reproduce.sh` only (uv.lock unrecoverable, warning)
+- `research.paper.scaffold` (v0.13.0) can use LAB_NOTEBOOK Lessons as material for the Limitations section in Phase 7 (loose coupling, optional)
+
+Spec: `skills/research.lab.notebook/SKILL.md` and `references/phase_notebook_map.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.
@@ -574,6 +643,7 @@ Invoke them through Claude Code, e.g. "Use research.cross.compare to compare `<s
 | `research.compute.shop` | Ranked GPU provider recommendations from an 18-provider catalog (commercial / marketplace / free / academic) (v0.8.0+) |
 | `research.autonomous.tinker` | karpathy-inspired autonomous tinker mode — Phase 5-6 alt where the agent iteratively edits a single `tinker/train.py` under fixed wall-clock budget to minimize `val_bpb` (v0.9.0+) |
 | `research.paper.scaffold` | Paper-first early scaffold (v0.13.0+) — invocable from Phase 2 onward, builds `paper/DRAFT.md` as a living document with hypothesis-driven Abstract and citation-backed Introduction |
+| `research.lab.notebook` | Lab notebook + failure postmortem skill (v0.14.0+) — Hybrid LAB_NOTEBOOK (timeline) + per-failure POSTMORTEM with auto-drafted Hypothesis space. Saves reproduce.sh + uv.lock snapshot so failed runs are also reproducible. Rejected ideas preserved with revisit conditions |
 
 ### Subagents
 

@@ -492,6 +492,79 @@ idempotent なので何度呼んでも問題ありません。
 
 詳細: `skills/research.paper.scaffold/SKILL.md` および `references/phase_section_map.md`
 
+## Lab Notebook & Reproducible Failures (v0.14.0+)
+
+科学研究の本質は「成功した結果」だけでなく「**何を試して、なぜダメだったか、次に何を変えるか**」の積み重ねにあります。
+v0.14.0 の `research.lab.notebook` skill は熟練研究者の lab notebook 文化をワークフローに統合し、
+**失敗そのものも再現可能** にします。
+
+### Hybrid 構造
+
+| ファイル | 役割 |
+|---------|------|
+| `LAB_NOTEBOOK.md` (slug 直下) | 単一 living document、時系列の "思考航海日誌"。Phase 3/5/6/8 で entry が積み重なる |
+| `06_RUNS/<id>/POSTMORTEM.md` | per-failure card (失敗 run のみ、auto-draft)。再現コマンド + Hypothesis space + Decision + Lessons |
+| `03_REJECTED_IDEAS.md` | Phase 3 で捨てた idea の full body + reason + future revisit conditions (将来の pivot で再考可能) |
+
+LAB_NOTEBOOK と POSTMORTEM は **双方向 link** で全体思考と個別失敗を navigate 可能。
+
+### Phase × ノート動作
+
+| Phase | 起動 | 主動作 |
+|-------|------|--------|
+| 3 (G2 通過後) | auto | rejected ideas 保存 + LAB_NOTEBOOK Phase 3 entry |
+| 5 (TDD Red) | manual (任意) | LAB_NOTEBOOK に test failure short note (30 分 stuck で推奨) |
+| 6 (run 完了) | **auto** | failed run があれば POSTMORTEM 下書き + reproduce.sh + uv.lock snapshot + LAB_NOTEBOOK entry。成功 run も 1 行 entry |
+| 8 (Review) | auto | LAB_NOTEBOOK の Lessons を `08_REVIEW.md` に統合 |
+
+### Hypothesis-driven 失敗 postmortem
+
+POSTMORTEM の §3 Hypothesis space は **events.jsonl + error.txt から 3-5 仮説を auto-draft**:
+
+```markdown
+| H | Statement | Evidence | Verdict |
+|---|-----------|----------|---------|
+| H1 | batch_size=16 で activation memory が 40GB を超過 | events.jsonl:step=1240 gpu_mem=38.45GB | LIKELY |
+| H2 | gradient checkpointing 未使用で activation 全保持 | config.yaml:gradient_checkpointing=false | LIKELY |
+| H3 | data leak (前 step の tensor が GC されず) | code review (train.py:L120 zero_grad あり) | RULED OUT |
+```
+
+verdict は agent draft (LIKELY / UNLIKELY / RULED OUT) で、user が確定。
+**§4 Decision と §5 Lessons は user polish 必須** (科学的価値の核心)。
+
+### 失敗 run の Reproducibility 7-tuple
+
+各 run (success / failed) で以下を自動保存:
+
+1. **Code rev** (events.jsonl の git_rev、既存)
+2. **Config** (`06_RUNS/<id>/config.yaml`、既存)
+3. **Dependencies** (`06_RUNS/<id>/uv.lock` snapshot、**v0.14.0 で新規**)
+4. **Random seed** (events.jsonl、既存)
+5. **Data version** (data_lineage.md の hash、既存)
+6. **Hardware** (events.jsonl の env、既存)
+7. **Reproduce command** (`06_RUNS/<id>/reproduce.sh`、**v0.14.0 で新規**)
+
+これにより `cd 06_RUNS/<id> && bash reproduce.sh` で同じ run (失敗 run も) を 1 コマンド再現可能。
+
+### Quick start
+
+`research.lab.notebook` は `auto-research` ワークフローが Phase 3/6/8 で **自動 dispatch** しますが、
+手動でも呼べます:
+
+```text
+> 「research.lab.notebook で <slug> の失敗を記録 / lab notebook を更新」
+```
+
+idempotent — 再実行しても既存 POSTMORTEM の人手 polish を破壊しません。
+
+### 後方互換性
+
+- 既存プロジェクト (LAB_NOTEBOOK.md 不在) で Phase 1-8 通常動作
+- v0.13.0 以前の `06_RUNS/<id>/` には best-effort で reproduce.sh だけ後付け (uv.lock は recover 不能、warning)
+- `research.paper.scaffold` (v0.13.0) は LAB_NOTEBOOK Lessons を Phase 7 paper.draft の Limitations 節で素材化可能 (loose coupling)
+
+詳細: `skills/research.lab.notebook/SKILL.md` および `references/phase_notebook_map.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。
@@ -597,6 +670,7 @@ bash scripts/find_cheap_gpu.sh A100-80GB-SXM 1 24 --slug attention-sink
 | `research.autonomous.tinker` | karpathy 流の autonomous tinker mode (Phase 5-6 alt: agent が train.py を反復編集、固定 wall-clock budget で val_bpb 最小化) (v0.9.0+) |
 | `research.autonomous.swarm` | N agents 並列の research org mode (v0.10.0+、5 戦略 / orchestrator 集約 / cross-pollination 制御) |
 | `research.paper.scaffold` | Phase 2+ から呼べる早期論文骨子 builder (v0.13.0+、hypothesis-driven Abstract + 引用付き Introduction を実験前から育てる、living paper/DRAFT.md) |
+| `research.lab.notebook` | 実験 lab notebook + 失敗 postmortem skill (v0.14.0+、LAB_NOTEBOOK + per-failure POSTMORTEM、reproduce.sh + uv.lock snapshot で失敗 run も再現可能、rejected ideas を捨てない) |
 
 ### Subagents
 
