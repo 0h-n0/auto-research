@@ -92,6 +92,45 @@ description: >
 - `06_RUNS/<run_id>/error.txt` に traceback を保存
 - 全体実行の最後に「failed: N / total: M」を報告
 
+### 5.5. Reproducibility 保証 (v0.14.0+)
+
+各 run 完了時 (success / failed 両方) に以下を **自動保存**:
+
+1. **`06_RUNS/<run_id>/uv.lock`** — project root の `uv.lock` を copy (deps drift 防止)
+   - project root に `uv.lock` 不在なら warning + skip
+2. **`06_RUNS/<run_id>/reproduce.sh`** — events.jsonl の最初の `tool.bash.uv_run` から構築:
+   ```bash
+   #!/bin/bash
+   # Auto-generated reproduce script for <run_id>
+   # Generated: <ISO 8601 timestamp>
+   # Original status: <succeeded|failed>
+   set -euo pipefail
+   cd "$(dirname "$0")"
+   uv sync --frozen --quiet
+   exec uv run --frozen python <entry> --config config.yaml "$@"
+   ```
+   - `set -euo pipefail` 必須 (silent fail 禁止)
+   - `--frozen` 必須 (deps drift 検出)
+   - 既存なら overwrite せず diff log のみ
+3. **chmod +x reproduce.sh**
+
+これにより `06_RUNS/<id>/` だけで `bash reproduce.sh` で同じ run を再現可能 (失敗 run も同様)。
+
+詳細は `skills/research.lab.notebook/references/reproducibility_checklist.md` (7-tuple checklist) を参照。
+
+### 5.6. 失敗 run の lab notebook 化 (v0.14.0+)
+
+`STATUS=failed` を書いた直後に **`research.lab.notebook` skill を auto-trigger**:
+
+- 各 failed run について `06_RUNS/<id>/POSTMORTEM.md` 下書きを生成
+  - `<!-- agent-managed:Phase=6 -->` marker 付き (人手 polish 保護)
+  - Hypothesis space §3 を events.jsonl + error.txt から 3-5 候補 draft (`hypothesis_table_rules.md` 準拠)
+  - §4 Decision / §5 Lessons は `<TODO: user polish>` placeholder
+- `LAB_NOTEBOOK.md` に Phase 6 entry (POSTMORTEM への link 含)
+- next-step trailer に "POSTMORTEM 下書き生成済" を表示
+
+成功 run でも `LAB_NOTEBOOK.md` に 1 行 entry を残す (時系列の連続性のため)。
+
 ### 6. metrics 集計 → 06_RESULTS.md 雛形
 
 全 run 終了後、各 `metrics.json` を読み込み:

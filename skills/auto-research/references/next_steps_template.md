@@ -144,6 +144,29 @@ succeeded run が 1 つもない場合:
 - 代替: `research-status <slug>` で失敗詳細
 - gate_marker に `⚠ all runs failed` を追記
 
+### 3.5 失敗 run 含む混在 (Phase 6 で一部 STATUS=failed、v0.14.0+)
+
+`research.lab.notebook` が POSTMORTEM 下書きを生成済み (auto-dispatch、§3.5 の dispatch 表参照)。
+trailer は **POSTMORTEM の存在と reproduce 手順を必ず提示**:
+
+```
+─────────────────────────────────────
+[Phase 6/8] ●●●●●●○○  G3 ✓  ⚠ {M} run failed
+
+→ POSTMORTEM 下書き生成済: `06_RUNS/{run_id}/POSTMORTEM.md`
+  Hypothesis 3 件 draft、§4 Decision / §5 Lessons 節は要 user polish
+→ Reproduce: `bash 06_RUNS/{run_id}/reproduce.sh`
+→ Reproducibility checklist: {ok}/7 ✓ (詳細 POSTMORTEM §6)
+
+  代替:
+   ・ POSTMORTEM.md を polish して /auto-research:research-experiment <slug> で再 run
+   ・ /auto-research:research-status <slug>   全 run 状態確認
+─────────────────────────────────────
+```
+
+- gate_marker に `⚠ {M} run failed` を追記 (M は failed run 数)
+- 複数 failed runs があれば最も新しい 1 件を提示 (全件 list は research-status へ誘導)
+
 ---
 
 ## 4. 実装ガイド (各コマンドが行うこと)

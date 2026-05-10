@@ -203,6 +203,13 @@ arxiv-mcp-agent への依頼:
 
 **3.4 では `1.1 Motivation` / `1.2 Related Work` は touch しない** (人手 polish 尊重)。
 
+**3.5 Lab notebook の seed (v0.14.0+)** — `research.lab.notebook` skill を invoke:
+- `03_IDEAS.md` の adopted vs rejected を分離
+- 採択されなかった idea を `03_REJECTED_IDEAS.md` に **full body + rejection reason + future revisit conditions** で保存 (捨てない)
+- `LAB_NOTEBOOK.md` を skeleton から生成 + Phase 3 entry (3 ideas considered, 1 adopted, 2 rejected の判断記録)
+
+これにより Phase 4 以降で「なぜ B でなく A を選んだか」「B を再考する条件」を即座に参照可能。
+
 ---
 
 ### Phase 4: Experiment Design
@@ -304,12 +311,24 @@ experiment-designer への依頼:
 - `## Abstract` の `[Hypothesis (Phase 6 で検証予定)]` を `[Result]` に置換 (実測値 + 統計検定の閾値)
 - 充足度: ~95%
 
-**6.5 進捗表示**:
+**6.5 失敗 run の lab notebook 化 (v0.14.0+)** — `research.experiment.run` が `STATUS=failed`
+を書いた直後に **`research.lab.notebook` を auto-trigger**:
+
+- 各 failed run について `06_RUNS/<id>/POSTMORTEM.md` 下書き (Hypothesis space 3-5 候補 draft、§4 Decision / §5 Lessons は user polish 必須)
+- `06_RUNS/<id>/reproduce.sh` を events.jsonl から構築 (`set -euo pipefail` + `uv sync --frozen`)
+- `06_RUNS/<id>/uv.lock` snapshot を project root から copy (deps drift 防止)
+- `LAB_NOTEBOOK.md` に Phase 6 entry (POSTMORTEM への link 含)
+- 成功 run も LAB_NOTEBOOK に 1 行 entry (時系列の連続性)
+
+これにより **失敗 run も成功 run と同等の reproducibility 7-tuple** (code rev / config / deps / seed / data hash / hardware / reproduce.sh) を持ち、`bash reproduce.sh` で同じ failure を再現可能。
+
+**6.6 進捗表示**:
 ```
 [Phase 6/8 完了] Run & Analysis
-  完了 run: N (failed: M)
+  完了 run: N (failed: M)  ⚠ M 件の POSTMORTEM 下書き済 (要 polish)
   primary metric 結果: {summary}
   paper/DRAFT.md 充足度: ~95%
+  Reproducibility checklist: 全 N run ✓
   次: Phase 7 (論文ドラフト最終仕上げ)
 ```
 
@@ -355,6 +374,13 @@ experiment-designer への依頼:
 ```
 
 並列で `gemini` skill を invoke し「直近 1 週間の関連最新論文」を確認、出てきたら Related Work に追加。
+
+**8.1.5 Lessons 統合 (v0.14.0+)** — `research.lab.notebook` skill を再 invoke:
+- `LAB_NOTEBOOK.md` の Phase 3-6 entries (特に POSTMORTEM §5 Lessons 集約) から **top 3 lessons** を抽出
+- `08_REVIEW.md` に `## Lessons learned` 節として **追記** (上書きしない)
+- `03_REJECTED_IDEAS.md` の "Future revisit conditions" を見直し、archive 候補を提示
+
+これにより Phase 8 review が「失敗からの学び」も含めた総括になり、次プロジェクトの起点になる。
 
 **8.2 ユーザー確認 — Gate G4 (対話 4 回目)**:
 
