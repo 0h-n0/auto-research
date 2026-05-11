@@ -81,6 +81,25 @@ INDEX.md 形式 (Phase 6 で `research.experiment.run` skill が自動更新):
   - PII redaction: events.jsonl の prompt 全文を hash 化、API key を環境変数参照に置換
 - **長期アーカイブ**: Zenodo (DOI 付き) を推奨
 
+## Generated artifacts (v0.17.0+)
+
+以下の path は **generated artifacts** (再 build 可能、SoT は元 MD)。git track 不要、`.gitignore` 推奨:
+
+| Path | Generator | SoT 元 | Regenerate |
+|------|----------|--------|-----------|
+| `.research/<slug>/viz/` | `research.notebook.viz` (v0.17.0+) | 各種 MD + JSON | `/auto-research:notebook-viz <slug>` |
+| `.research/<slug>/viz-src/` | 同上 (build 中間物) | 同上 | 同上 |
+
+`.gitignore` 推奨 (project root):
+```
+# auto-research generated artifacts
+.research/*/viz/
+.research/*/viz-src/
+```
+
+`viz/` は static site (entry: `viz/index.html`)、`file://` で開ける。
+`viz-src/` は build 中間物 (`mkdocs.yml` + 加工済 `docs/`)、debug 用に保持される。
+
 ## Retention 強制 (v0.6.0+)
 
 `scripts/cleanup_checkpoints.sh` で半自動化:

@@ -699,6 +699,67 @@ Tags: `#daily-summary` `#stuck` `#phase-5`
 
 Spec: `skills/research.lab.notebook/references/provenance_template.md`, `alcoa_correction_guideline.md`, `daily_summary_template.md`
 
+## Visual Notebook (v0.17.0+)
+
+Build a **MkDocs material HTML site** from your experiment logs and lab notebook. MD files remain the SoT; HTML is a generated artifact written to `.research/<slug>/viz/` (no git tracking needed; add to `.gitignore`).
+
+### Quick start
+
+```text
+> /auto-research:notebook-viz <slug>           # build only
+> /auto-research:notebook-viz <slug> --serve   # preview at localhost:8000 (live-reload)
+> open .research/<slug>/viz/index.html         # open in browser after build
+```
+
+**No Phase auto-dispatch** — build is on the heavy side, so it runs manually when you want to look.
+
+### Visual elements
+
+| Element | Mechanism |
+|---------|-----------|
+| **events.jsonl → time-series chart** | Chart.js (CDN) embedded per-run page (loss / metric curves) |
+| **STATE.json → Phase progress bar** | HTML/CSS injected into every page header (done = green / current = blue / pending = gray) |
+| **LAB_NOTEBOOK Tags → tag index** | `Tags: #...` converted to mkdocs frontmatter `tags:`; tags plugin auto-generates the reverse-lookup page |
+| **Sortable tables** | 06_RESULTS / MATRIX / 06_RUNS/INDEX made sortable via `attr_list` |
+| **Search box** | mkdocs-material native (Japanese + English indexing) |
+| **Dark / light mode** | mkdocs-material native palette switcher |
+
+### 10 sections + tags index
+
+Site entry at `viz/index.html`:
+
+```
+Home (01_BRIEF) → Survey (MATRIX) → Ideas (adopted/rejected) → Plan
+  → Runs (INDEX + per-id with Chart.js) → Lab Notebook (entries split + tags)
+  → Postmortems (per-failure with Blameless callout) → Results
+  → Review (08_REVIEW) → Paper (DRAFT.md preview)
+  → Tags (auto-generated reverse lookup by mkdocs-material)
+```
+
+Missing input files are auto-skipped from the navigation.
+
+### Dependencies
+
+- **`uvx`** (uv 0.4+, existing)
+- **mkdocs-material[recommended] ≥9.5.0** — installed on demand via `uvx` (no permanent install)
+- **Chart.js CDN** — `https://cdn.jsdelivr.net/npm/chart.js` (chart rendering requires network; the build itself does not)
+
+### Build time
+
+| Scale | Time |
+|-------|------|
+| First run (uvx installs mkdocs-material) | ~30s |
+| Subsequent runs (cached) | ~5s (small) / ~15s (medium) / ~30s (large) |
+
+### Suggested `.gitignore`
+
+```
+.research/*/viz/
+.research/*/viz-src/
+```
+
+Spec: `skills/research.notebook.viz/SKILL.md` and `references/{viz_pipeline,chart_embedding,nav_structure,phase_progress_template,metric_table_template,mkdocs_config_template.yml}.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.

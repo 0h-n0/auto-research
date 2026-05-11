@@ -676,6 +676,67 @@ Tags: `#daily-summary` `#stuck` `#phase-5`
 
 詳細: `skills/research.lab.notebook/references/provenance_template.md`、`alcoa_correction_guideline.md`、`daily_summary_template.md`
 
+## Visual Notebook (v0.17.0+)
+
+実験ログ / lab notebook を **MkDocs material で HTML site にビルド**して視覚化します。MD は SoT として残し、HTML は `.research/<slug>/viz/` に generated artifact として出力 (git track 不要、`.gitignore` 推奨)。
+
+### Quick start
+
+```text
+> /auto-research:notebook-viz <slug>           # build only
+> /auto-research:notebook-viz <slug> --serve   # localhost:8000 で preview (live-reload)
+> open .research/<slug>/viz/index.html         # browser で開く (build 後)
+```
+
+**Phase auto-dispatch なし** (build は重め、user が見たい時に manual 実行)。
+
+### 視覚化要素
+
+| 要素 | 機構 |
+|------|------|
+| **events.jsonl → time-series chart** | Chart.js (CDN) を per-run page に embed、loss / metric curves |
+| **STATE.json → Phase progress bar** | HTML/CSS で全 page header に inject (done=緑 / current=青 / pending=灰) |
+| **LAB_NOTEBOOK Tags → 逆引き index** | mkdocs frontmatter tags 変換 + tags plugin で auto-gen |
+| **Sortable tables** | 06_RESULTS / MATRIX / 06_RUNS/INDEX を `attr_list` で sortable 化 |
+| **Search box** | mkdocs-material native (日本語 + 英語 indexing) |
+| **Dark / light mode** | mkdocs-material native palette switcher |
+
+### 10 sections + tags index
+
+`viz/index.html` を entry に:
+
+```
+Home (01_BRIEF) → Survey (MATRIX) → Ideas (adopted/rejected) → Plan
+  → Runs (INDEX + per-id with Chart.js) → Lab Notebook (entries split + tags)
+  → Postmortems (per-failure with Blameless callout) → Results
+  → Review (08_REVIEW) → Paper (DRAFT.md preview)
+  → Tags (mkdocs-material auto-gen 逆引き)
+```
+
+不在ファイルは nav から auto skip。
+
+### 依存
+
+- **`uvx`** (uv 0.4+、既存)
+- **mkdocs-material[recommended] ≥9.5.0** — `uvx` で都度 auto-install (固定 install 不要)
+- **Chart.js CDN** — `https://cdn.jsdelivr.net/npm/chart.js` (offline で chart 描画不可、build 自体は network 不要)
+
+### Build 時間目安
+
+| 規模 | 時間 |
+|------|------|
+| 初回 (`uvx mkdocs-material` install) | ~30 秒 |
+| 2 回目以降 (cache 利用) | ~5 秒 (小) / ~15 秒 (中) / ~30 秒 (大) |
+
+### `.gitignore` 推奨
+
+```
+.research/*/viz/
+.research/*/viz-src/
+```
+
+詳細: `skills/research.notebook.viz/SKILL.md` および `references/{viz_pipeline,chart_embedding,nav_structure,phase_progress_template,metric_table_template,mkdocs_config_template.yml}.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。

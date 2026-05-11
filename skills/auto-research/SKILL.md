@@ -458,6 +458,23 @@ experiment-designer への依頼:
 
 skip 不可。STATE.json が読めない場合も §1「STATE.json 不在」テンプレを出す。
 
+## 視覚化 (v0.17.0+、manual invoke)
+
+`research.notebook.viz` skill で **MkDocs material による HTML 視覚化** を任意で実施可能。
+MD ファイルは SoT として残し、HTML は `.research/<slug>/viz/` に generated artifact として出力:
+
+```text
+> /auto-research:notebook-viz <slug>           # build only
+> /auto-research:notebook-viz <slug> --serve   # localhost:8000 で preview
+```
+
+- events.jsonl → Chart.js time-series chart
+- LAB_NOTEBOOK `Tags:` → mkdocs-material tags plugin で逆引き
+- STATE.json → Phase 1-8 progress bar (全 page header)
+- 10 sections: Brief / Survey / Ideas / Plan / Runs / Lab Notebook / Postmortems / Results / Review / Paper
+
+**Phase auto-dispatch なし** (build は重め、user が見たい時に manual)。詳細: `skills/research.notebook.viz/SKILL.md`。
+
 ## 関連ドキュメント
 
 - `references/phase_state_machine.md` — STATE.json schema + rollback edges
