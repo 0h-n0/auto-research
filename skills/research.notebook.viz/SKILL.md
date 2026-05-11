@@ -46,6 +46,8 @@ HTML 視覚化はこれを補完。**MD は SoT として残し**、HTML は gen
 - `.research/<slug>/04_EXPERIMENT_PLAN.md`
 - `.research/<slug>/06_RUNS/INDEX.md`, `06_RUNS/<id>/{config.yaml,metrics.json,events.jsonl,STATUS,error.txt,POSTMORTEM.md,reproduce.sh}`
 - `.research/<slug>/06_RESULTS.md`
+- `.research/<slug>/figures/*.pdf` (v0.18.0+、result-statistician 出力、PNG/SVG 推奨)
+- `.research/<slug>/code/analysis/<slug>.py`, `.research/<slug>/code/results/probe/*.json` (v0.18.0+、attention-analyst 出力、focus_area=attention のみ)
 - `.research/<slug>/08_REVIEW.md`
 - `.research/<slug>/LAB_NOTEBOOK.md`, `LAB_NOTEBOOK_INDEX.md`
 - `.research/<slug>/paper/DRAFT.md`, `paper/refs.bib`

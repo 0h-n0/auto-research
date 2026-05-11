@@ -36,7 +36,7 @@
 | 6 (focus_area=attention) probe | `attention-analyst` × 1-N | 完了 run の checkpoint | `06_RUNS/attention/<probe_id>.md` | mechanistic interpretation |
 | 7 (Paper Drafting) related work 最終確認 | `arxiv-mcp-agent` × 1 | focus_area + main keywords, 直近 3 ヶ月 | 追加候補 ≤5 本 | 既存 `papers.jsonl` で claim 済みは除外 |
 | 7 (章ごと並列) | (なし — main thread の Task 並列でドラフト) | sections 用入力 | `paper/sections/*.md` | agent ではなく Task 並列を使う |
-| 8 (Self-Review) reviewer | `research-gap-finder` × 1 (mode=reviewer) | `paper/main.{tex,md}`, `06_RESULTS.md` | `08_REVIEW.md` | 同 agent を別モードで再利用 |
+| 8 (Self-Review) reviewer | `research-gap-finder` × 1 (mode=reviewer) | `paper/main.{tex,md}`, `paper/DRAFT.md` (v0.13.0+), `06_RESULTS.md`, `LAB_NOTEBOOK.md` (v0.14.0+), `06_RUNS/*/POSTMORTEM.md` (v0.14.0+), `03_REJECTED_IDEAS.md` (v0.14.0+) | `08_REVIEW.md` | v0.18.0+ で入力拡張。観点に Design integrity (Phase 3-4 予測 vs Phase 6 実測、Surprise score high の含意、rejected ideas の revisit risk) 追加 |
 
 ### Phase 4 後段 — Procurement (v0.8.0+)
 
@@ -83,6 +83,14 @@ karpathy/autoresearch README で **future work** として明記された "resea
   Phase 6 後段で同時に走るが、入力は `06_RUNS/*/metrics.json` (statistician) と checkpoint (analyst) で重複なし。書き出し先も違うため OK。
 - **research-gap-finder のモード分岐**
   `mode=ideation` (Phase 3) と `mode=reviewer` (Phase 8) は別ロール。同じ agent を再利用するが、呼び出し時に `mode` 引数を必ず指定する。
+
+- **責務境界 (v0.18.0+ 明確化)**:
+  - **research-gap-finder (Phase 3)**: `03_GAP_ANALYSIS_{A,B,C}.md` を生成 (gap + idea candidates)、3 並列 dispatch、seed バリエーション
+  - **research.lab.notebook (Phase 3.5)**: `03_IDEAS.md` の adopted vs rejected を分離して `03_REJECTED_IDEAS.md` を生成、LAB_NOTEBOOK Phase 3 entry に Decision journal block + Tags を追加
+  - 両者は **並列責務**: gap finding ≠ notebook keeping。clean separation。
+
+- **Phase 8 reviewer の入力拡張 (v0.18.0+)**:
+  reviewer は LAB_NOTEBOOK の Phase 3-6 entries (Decision journal + metacognition、Surprise score) + POSTMORTEM (failure Hypothesis space) + 03_REJECTED_IDEAS (revisit conditions) を読み、設計時の予測と実測の alignment、Surprise high の含意、捨てた idea の revisit risk を評価。不在ファイルは skip (v0.13.0 以前 project でも broken なし)。token 消費抑制策 (LAB_NOTEBOOK_INDEX.md を input にする option) は v0.19+ で検討。
 
 ## 並列起動の上限
 

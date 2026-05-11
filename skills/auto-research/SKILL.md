@@ -277,6 +277,13 @@ experiment-designer への依頼:
 - Green: ml-engineer agent に実装委任 (`Agent(subagent_type="ml-engineer")`)
 - Refactor: 型整理、logging 整備
 
+**5.2.5 TDD Red 30min stuck (v0.18.0+)** — Red 段階で 30 分以上 stuck な user 認識時:
+- `research.lab.notebook` を **manual invoke 推奨** (test failure + hypothesis + verified by を short note で記録)
+- Daily summary entry (v0.16.0+) の `Today's stuck` フィールドで 1 行残す
+- `/auto-research:lessons-search --phase 5` で過去の Phase 5 stuck パターンを検索
+- trailer は `next_steps_template.md` §3.7 に従って提示
+- 自動検出 (timeout-based) は v0.19+ で検討
+
 **5.3 ベースライン実行** — 1 seed・1 config でベースラインを通す。`uv run pytest -q` 全パス & ベースライン metrics が `04_EXPERIMENT_PLAN.md` の sanity 範囲内か確認。
 
 **5.4 進捗表示** (ゲートなし):
@@ -375,13 +382,27 @@ experiment-designer への依頼:
 **8.1 セルフレビュー** — `Agent(subagent_type="research-gap-finder")` を reviewer モードで dispatch:
 
 ```
-依頼:
-  入力: paper/main.{tex,md}, 06_RESULTS.md
+依頼 (v0.18.0 拡張):
+  入力:
+    - paper/main.{tex,md}                   (LaTeX 化済 paper)
+    - paper/DRAFT.md (v0.13.0+)             (paper.scaffold 由来、Phase 4 Predicted ablation winner 等を含む)
+    - 06_RESULTS.md                         (実測 metric)
+    - LAB_NOTEBOOK.md (v0.14.0+)            (Phase 3-6 decision journal + metacognition、特に Surprise score)
+    - 06_RUNS/*/POSTMORTEM.md (v0.14.0+)    (failed run の Hypothesis space + Lessons)
+    - 03_REJECTED_IDEAS.md (v0.14.0+)       (捨てた idea の revisit conditions)
+  (不在ファイルは skip、v0.13.0 以前 project でも broken なし)
+
   観点 (ICLR reviewer 視点):
     - Soundness: 主張と証拠の対応、統計検定の妥当性
     - Presentation: 構成、図表、用語一貫性
     - Contribution: 新規性、impact、再現性
     - Reproducibility: seed / config / 環境再現の十分性
+    - Design integrity (v0.18.0+):
+        * Phase 3-4 の予測 (Decision journal block) vs Phase 6 実測の alignment
+        * Surprise score high (≥4) の assumption 反証の含意
+        * rejected ideas の revisit risk (03_REJECTED_IDEAS.md の future revisit conditions)
+        * POSTMORTEM の Lessons が paper の Limitations 節に反映されているか
+
   出力: 08_REVIEW.md (弱点 + reviewer-likely-questions)
 ```
 
@@ -407,10 +428,19 @@ experiment-designer への依頼:
   reviewer-likely-questions: {M 件}
 
 [Y] 公開する (CHANGELOG.md に記録、終了)
-[I] 致命的問題を修正 (Phase 4 or 6 に戻る)
+[I] 致命的問題を修正
+   → 修正方向を user に問う (v0.18.0+):
+       [4] Phase 4 (実験計画見直し、新しい因子追加 / hypothesis 拡張)
+       [6] Phase 6 (追加 run 実施、現状計画を保ったまま データ補強)
 [E] レビューコメントだけ反映してもう 1 周
 [Q] 中断 (現状凍結)
 ```
+
+`[I]` 選択時、user 選択に応じて `.research/<slug>/CHANGELOG.md` に rollback 記録:
+- `[4]` → `yyyy-mm-dd: rolled back to Phase 4 (致命的問題 N 件: ...)` + STATE.json.current_phase = 4 + rollbacks に entry
+- `[6]` → `yyyy-mm-dd: extended Phase 6 (致命的問題 N 件: ...)` + STATE.json.current_phase = 6 + rollbacks に entry
+
+`research.lab.notebook` も Phase 8 lessons (致命的問題の root cause を blameless で要約) を `08_REVIEW.md` に統合 + Lessons DB append。
 
 公開時 `CHANGELOG.md` に `[unreleased] -> [v0.1.0]` のように追記、`STATE.json.completed_at` をセット。
 

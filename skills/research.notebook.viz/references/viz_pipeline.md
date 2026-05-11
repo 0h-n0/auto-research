@@ -123,6 +123,31 @@ cp -r "${SKILL_DIR}/references/assets/" "${VIZ_SRC}/docs/assets/"
 
 (skill の references/ に bundled CSS / JS、または build script が inline で生成、v0.17.0 では後者)
 
+### 2h. figures/ + analysis/ 追加 (v0.18.0+)
+
+result-statistician と attention-analyst の出力を viz nav に組込:
+
+```bash
+# result-statistician 出力 (figures/*.pdf) を docs/results/ 配下に copy
+if test -d "${SLUG_DIR}/figures"; then
+    mkdir -p "${VIZ_SRC}/docs/results/figures"
+    cp -r "${SLUG_DIR}/figures/." "${VIZ_SRC}/docs/results/figures/"
+    # 各 figure に caption 付き <embed> を generate (results/index.md に追記)
+fi
+
+# attention-analyst 出力 (focus_area=attention のみ) を docs/analysis/ に copy
+if test -d "${SLUG_DIR}/code/analysis"; then
+    mkdir -p "${VIZ_SRC}/docs/analysis"
+    cp -r "${SLUG_DIR}/code/analysis/." "${VIZ_SRC}/docs/analysis/"
+fi
+if test -d "${SLUG_DIR}/code/results/probe"; then
+    mkdir -p "${VIZ_SRC}/docs/analysis/probe"
+    cp -r "${SLUG_DIR}/code/results/probe/." "${VIZ_SRC}/docs/analysis/probe/"
+fi
+```
+
+詳細は `nav_structure.md` §8 (Results)。
+
 ## Step 3: uvx mkdocs-material build
 
 ```bash

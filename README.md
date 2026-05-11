@@ -737,6 +737,32 @@ Home (01_BRIEF) → Survey (MATRIX) → Ideas (adopted/rejected) → Plan
 
 詳細: `skills/research.notebook.viz/SKILL.md` および `references/{viz_pipeline,chart_embedding,nav_structure,phase_progress_template,metric_table_template,mkdocs_config_template.yml}.md`
 
+## Recommendation Integrity (v0.18.0+)
+
+v0.13.0 〜 v0.17.0 で追加してきた多数の skill / command / agent が **適切なタイミングで適切に user に推薦されるか** の整合性監査結果を反映した polish。コード変更は軽微、user 導線の "適切な推薦" を強化:
+
+### 新 trailer 追加
+
+- **§3.6 Phase 3 G2 通過後**: "💡 Before you proceed — past lessons?" で `/auto-research:lessons-search` を 3 形態 (free text / --phase / --tag) で推奨
+- **§3.5 Phase 6 failed run 拡張**: 既存 POSTMORTEM 推奨に加えて "💡 Similar failure?" lessons-search hint
+- **§3.7 Phase 5 TDD Red 30min stuck**: `research.lab.notebook` manual invoke 推奨 + Daily summary `Today's stuck` field 案内
+- **§3.8 Phase 6 Surprise score high (≥4)**: "assumption 反証あり" 強調 + `lessons-search --tag #assumption-reversed`
+- **§1 完了表示拡張**: Phase 8 G4 通過時に `/auto-research:notebook-viz` で project summary 視覚化を推奨
+
+### Phase 8 reviewer 入力拡張
+
+`research-gap-finder` reviewer mode への入力に `LAB_NOTEBOOK.md` (Decision journal + metacognition) + `06_RUNS/*/POSTMORTEM.md` + `03_REJECTED_IDEAS.md` + `paper/DRAFT.md` を追加。新観点 **"Design integrity"** で Phase 3-4 の予測 vs Phase 6 実測の alignment / Surprise high の含意 / rejected ideas の revisit risk を評価。
+
+### Phase 8 [I] 致命的問題: Phase 4 / 6 選択
+
+G4 で `[I]` 選択時、user に Phase 4 (計画見直し) or Phase 6 (追加 run) を問う。rollback 後の CHANGELOG.md 記録動作を明示。
+
+### notebook-viz nav 拡張
+
+`figures/*.pdf` (result-statistician 出力) + `code/analysis/<slug>.py` (attention-analyst output) が viz の Results 配下に組込まれる。
+
+詳細: `CHANGELOG.md` `[0.18.0]` および `skills/auto-research/references/next_steps_template.md`
+
 ## Data & Comparison (v0.3.0+)
 
 実験データの取り扱いを `skills/auto-research/references/data_lineage.md` に集約しています。

@@ -7,6 +7,52 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-05-11 — Recommendation Integrity Polish
+
+v0.13.0 〜 v0.17.0 で追加してきた多数の skill / command / agent が **適切なタイミングで適切に推薦されるか** の整合性監査 (3 並列 Explore) を実施。Critical 3 + Minor 4 = **7 gaps** を修正。コード変更は軽微 (SKILL.md / references / template の記述追加が中心)、user-facing は trailer / agent dispatch の "適切な推薦" が大幅に強化された。
+
+### Changed (Critical)
+
+- **`next_steps_template.md` §3.5 拡張**: Phase 6 failed run 含む混在 trailer に **lessons-search hint** を追加 (POSTMORTEM 推奨に加えて "Similar failure in past projects?")
+- **`next_steps_template.md` §1 完了表示拡張**: Phase 8 G4 通過時に **notebook-viz 推奨ブロック** + Cross-project recall (lessons-search) を追加
+- **`auto-research/SKILL.md` Phase 8.1 reviewer 入力拡張**: `paper/main.{tex,md}, 06_RESULTS.md` のみ → `paper/DRAFT.md` (v0.13.0+) + `LAB_NOTEBOOK.md` (v0.14.0+) + `06_RUNS/*/POSTMORTEM.md` (v0.14.0+) + `03_REJECTED_IDEAS.md` (v0.14.0+) を追加。観点に "**Design integrity**: Phase 3-4 の予測 vs Phase 6 実測の alignment、Surprise score high の含意、rejected ideas の revisit risk" を追加
+- **`agents/DISPATCH_MATRIX.md`**: Phase 8 reviewer の入力リスト sync + research-gap-finder × lab.notebook の責務境界明確化 (gap finding vs notebook keeping)
+
+### Added (Critical trailers — `next_steps_template.md`)
+
+- **§3.6 Phase 3 G2 通過直後 — Lessons DB hint** (新規): idea 採択直後に "💡 Before you proceed: similar past lessons?" + lessons-search 3 例 (free text / phase filter / tag filter)
+- **§3.7 Phase 5 TDD Red 30min stuck** (新規): 30 分以上 stuck な user 認識時の trailer + lab.notebook manual invoke 推奨 + Daily summary `Today's stuck` field + lessons-search hint
+- **§3.8 Phase 6 metacognition Surprise score high** (新規): Surprise score ≥ 4 の時 "assumption 反証あり" 強調 + lessons-search `--tag #assumption-reversed` + LAB_NOTEBOOK metacognition entry polish 推奨
+
+### Changed (Minor)
+
+- **`auto-research/SKILL.md` §5.2.5** (新規): Phase 5 TDD Red 30min stuck の対処 (lab.notebook manual invoke + Daily summary + lessons-search) を明文化
+- **`auto-research/SKILL.md` §8.2 [I] 致命的問題 選択ロジック**: `[4]` Phase 4 (実験計画見直し) / `[6]` Phase 6 (追加 run) のどちらに戻るか user に問う、rollback 後の CHANGELOG.md 記録動作を明示
+- **`research.notebook.viz/SKILL.md` 入力拡張**: `figures/*.pdf` (result-statistician 出力) と `code/analysis/<slug>.py` + `code/results/probe/*.json` (attention-analyst output) を nav に組込
+- **`references/nav_structure.md` §8 Results 拡張**: figures sub-nav + analysis sub-nav の仕様追加 (mkdocs-material `<embed>` + `pymdownx.snippets`)
+- **`references/viz_pipeline.md` step 2h** (新規): figures/ + analysis/ copy step を build pipeline に追加
+
+### Added (Tests)
+
+- **`tests/test_next_steps_template.sh`** (新規、36 sub-tests): §3.5 lessons-search hint + §3.6/3.7/3.8 markers + §1 notebook-viz 完了表示 + auto-research SKILL の Phase 5.2.5 / Phase 8 reviewer 入力 / Phase 8.2 [I] 選択 + DISPATCH_MATRIX の reviewer 拡張
+- **`tests/test_notebook_viz.sh` 拡張** (70 → 79 sub-tests): figures/*.pdf + code/analysis 入力、nav_structure の figures/analysis sub-nav、viz_pipeline step 2h
+- 全テスト pass: `bash tests/run_all.sh` で **17 pass / 0 fail** (16 → +test_next_steps_template.sh で 17 test files)
+
+### Backward Compatibility
+
+- 既存 v0.17.0 以前プロジェクトは **そのまま動作**
+- trailer 追加は user 体験向上のみ、既存 trailer フォーマットは保持
+- reviewer dispatch の新入力 (LAB_NOTEBOOK 等) は **不在時 auto skip** (v0.13.0 以前 project でも broken なし)
+- notebook-viz の figures/ analysis/ 追加は **不在時 nav から skip**
+- Phase 8.2 [I] の Phase 選択は新規 prompt、user 任意
+
+### Notes
+
+- 監査結果: 7 gaps は v0.13.0 〜 v0.17.0 でこれまで個別実装したが、「適切なタイミングでの推薦」が次第に未反映になっていた
+- Critical 3 (lessons-search / notebook-viz / reviewer input) はユーザー導線に直接影響、UX 改善大
+- Minor 4 (Phase 5 stuck / Surprise / G4 [I] / viz figures) は polish 寄りだが論理的整合性を保つ
+- Phase 5 TDD timeout の自動検出 / Surprise score auto-trigger / Lessons DB reviewer 参照 / DISPATCH_MATRIX 自動 lint は v0.19+ 候補
+
 ## [0.17.0] - 2026-05-11 — Visual Notebook (HTML rendering)
 
 実験ログ / lab notebook を **MkDocs material で HTML site にビルド**する新スキル `research.notebook.viz` を追加。MD ファイルは SoT として残し、HTML は `.research/<slug>/viz/` に generated artifact として出力。events.jsonl は Chart.js で time-series chart、LAB_NOTEBOOK の Tags は tag plugin で逆引き、STATE.json は Phase 1-8 progress bar 化。

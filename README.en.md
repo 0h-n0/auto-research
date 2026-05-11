@@ -760,6 +760,32 @@ Missing input files are auto-skipped from the navigation.
 
 Spec: `skills/research.notebook.viz/SKILL.md` and `references/{viz_pipeline,chart_embedding,nav_structure,phase_progress_template,metric_table_template,mkdocs_config_template.yml}.md`
 
+## Recommendation Integrity (v0.18.0+)
+
+A polish release that reflects an integrity audit of how the many skills / commands / agents added in v0.13.0 〜 v0.17.0 are **actually surfaced to the user at the right moment**. Light code changes, but the "recommendation surface" is materially strengthened:
+
+### New trailers
+
+- **§3.6 After Phase 3 G2**: "💡 Before you proceed — past lessons?" surfaces `/auto-research:lessons-search` in three forms (free text / `--phase` / `--tag`)
+- **§3.5 Phase 6 failed-run extension**: existing POSTMORTEM recommendation now also shows "💡 Similar failure?" lessons-search hints
+- **§3.7 Phase 5 TDD Red 30-min stuck**: prompts manual `research.lab.notebook` invocation + Daily summary `Today's stuck` field
+- **§3.8 Phase 6 Surprise score ≥ 4**: highlights "assumption refuted" + `lessons-search --tag #assumption-reversed`
+- **§1 completed-project banner**: at Phase 8 G4, recommends `/auto-research:notebook-viz` for project summary visualization
+
+### Phase 8 reviewer input expansion
+
+The `research-gap-finder` reviewer-mode input now includes `LAB_NOTEBOOK.md` (Decision journal + metacognition), `06_RUNS/*/POSTMORTEM.md`, `03_REJECTED_IDEAS.md`, and `paper/DRAFT.md` (v0.13.0+ artifacts). A new review dimension — **"Design integrity"** — evaluates Phase 3-4 predictions vs Phase 6 measurements, implications of high Surprise scores, and revisit risks of rejected ideas.
+
+### Phase 8 [I]: Phase 4 / 6 choice
+
+When user picks `[I]` at G4, they are explicitly asked whether to roll back to Phase 4 (plan revision) or extend Phase 6 (additional runs). The CHANGELOG.md rollback record is also clarified.
+
+### notebook-viz nav expansion
+
+`figures/*.pdf` (result-statistician output) and `code/analysis/<slug>.py` (attention-analyst output) are now folded into the viz Results section.
+
+Details: `CHANGELOG.md` `[0.18.0]` and `skills/auto-research/references/next_steps_template.md`
+
 ## Data & Comparison (v0.3.0+)
 
 Data handling is centralised in `skills/auto-research/references/data_lineage.md`.
