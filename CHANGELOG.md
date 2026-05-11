@@ -7,6 +7,47 @@ Release procedure: see [RELEASING.md](./RELEASING.md).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-11 — Visual Notebook (HTML rendering)
+
+実験ログ / lab notebook を **MkDocs material で HTML site にビルド**する新スキル `research.notebook.viz` を追加。MD ファイルは SoT として残し、HTML は `.research/<slug>/viz/` に generated artifact として出力。events.jsonl は Chart.js で time-series chart、LAB_NOTEBOOK の Tags は tag plugin で逆引き、STATE.json は Phase 1-8 progress bar 化。
+
+### Added (Skill)
+- **`research.notebook.viz` skill** (`skills/research.notebook.viz/`):
+  manual invoke で `.research/<slug>/viz/` に MkDocs material 製 static site を build (`uvx --from mkdocs-material mkdocs build` 経由、固定 install 不要)。
+  - **Chart.js time-series**: per-run page に `06_RUNS/<id>/events.jsonl` の loss / metric curves を line chart embed
+  - **Phase progress bar**: `STATE.json` の current_phase / last_gate_passed を HTML/CSS で全 page header に inject (done=green / current=blue / pending=gray)
+  - **Tag inversion**: LAB_NOTEBOOK の `Tags: #...` を mkdocs frontmatter `tags:` に変換、mkdocs-material tags plugin で逆引き page auto-gen
+  - **10 sections**: Brief / Survey / Ideas / Plan / Runs / Lab Notebook / Postmortems / Results / Review / Paper (+ Tags index)
+  - **Sortable table**: `06_RESULTS.md` / `02_SURVEY/MATRIX.md` / `06_RUNS/INDEX.md` を `attr_list` で sortable HTML table 化
+  - **Dark / light mode switcher** 内蔵 (mkdocs-material native)
+  - **Search box** 内蔵 (mkdocs-material search plugin、ja+en)
+  - 6 references SoT: `mkdocs_config_template.yml.md` / `viz_pipeline.md` / `chart_embedding.md` / `nav_structure.md` / `phase_progress_template.md` / `metric_table_template.md`
+
+### Added (Command)
+- **`commands/notebook-viz.md`**: `/auto-research:notebook-viz <slug> [--serve]` で manual build / preview
+  - `--serve` で `mkdocs serve --dev-addr localhost:8000` を background 起動 (live-reload 内蔵)
+
+### Changed
+- `auto-research/SKILL.md`: 「視覚化 (v0.17.0+、manual invoke)」節を追加、`notebook-viz` の使い方を案内
+- `auto-research/references/data_lineage.md`: 「Generated artifacts (v0.17.0+)」節を追加、`.research/*/viz/` と `viz-src/` の retention rule (git track 不要、`.gitignore` 推奨) を明記
+- `marketplace.json`: description に v0.17.0 機能を反映
+
+### Added (Tests)
+- **`tests/test_notebook_viz.sh`** (70 sub-tests): SKILL.md + 6 references の存在 + 必須 marker (mkdocs theme/plugins/extras、Chart.js、Phase progress CSS class、10 nav sections、sortable table、command frontmatter、data_lineage retention rule、auto-research SKILL.md の言及)
+- 全テスト pass: `bash tests/run_all.sh` で **16 pass / 0 fail** (15 → +test_notebook_viz.sh で 16)
+
+### Backward Compatibility
+- 既存 v0.16.0 プロジェクトは **そのまま動作**。viz/ 不在でも auto-research workflow 全 Phase 動作不変
+- v0.13.0 以前 (LAB_NOTEBOOK / paper.scaffold なし) の project にも適用可、不在ファイルは nav から auto skip
+- Phase auto-dispatch なし (build は重め、user が `/auto-research:notebook-viz` で manual)
+- `.gitignore` 推奨は README で明示、強制せず
+
+### Notes
+- 外部依存: `uvx` (uv 0.4+、既存) + `mkdocs-material[recommended]>=9.5.0,<10` (uvx auto-install) + Chart.js CDN
+- Build 時間: 初回 install ~30 秒、cache 後 ~5-15 秒 (project 規模次第)
+- Offline mode (Chart.js vendor copy): v0.18+ で実装予定
+- GitHub Pages deploy (`mkdocs gh-deploy` 統合) は Open Notebook Science 公開機構として v0.18+ 候補
+
 ## [0.16.0] - 2026-05-11 — Lab Notebook P1 Polish
 
 v0.15.0 で Out of Scope に保留した **P1 3 要素** (Provenance trace / ALCOA+ correction guideline / Daily summary entry) を実装。いずれも v0.14.0 / v0.15.0 lab.notebook の **拡張 (optional features)**、workflow dispatch 不変、後方互換。
