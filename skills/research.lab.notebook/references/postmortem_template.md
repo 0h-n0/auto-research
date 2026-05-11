@@ -25,6 +25,12 @@
 - **Started**: <ISO 8601 timestamp>
 - **Reproduce**: `bash reproduce.sh`
 
+**Provenance** (任意、v0.16.0+):
+- **Inspired by**: `~\cite{<bibtex-key>}`
+- **Discussion**: <initials> @ <YYYY-MM-DD>
+- **AI assistant**: Claude / ChatGPT @ <YYYY-MM-DD>
+(`provenance_template.md` 参照、optional)
+
 ## 2. What happened
 
 - **Failure mode**: <e.g., "OOM at step 1240" / "NaN in loss at epoch 3" / "shape mismatch in attention head">

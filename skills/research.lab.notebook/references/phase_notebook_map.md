@@ -92,6 +92,18 @@ research.experiment.run (Phase 6)
        next-step trailer に "POSTMORTEM 下書き済み" を表示
 ```
 
+## Phase 横断: Daily summary entry (v0.16.0+、任意 manual)
+
+`daily_summary_template.md` の **Light touch 4-prompt schema** で日次 entry を書ける。
+Phase event 駆動を補完するため、Phase 1-8 のいつでも user manual で挿入可能。
+
+- agent auto-dispatch しない (user manual のみ)
+- 毎日強制でない、書きたい日だけ
+- Phase 1 / 2 / 7 (lab.notebook event 不在 Phase) でも notebook 連続性を保てる
+- Phase 8 review 時に Daily entries の "Today's insight" / "Today's stuck" を generalizable lesson の素材として使う (将来 v0.17+ feature)
+
+詳細: `daily_summary_template.md`。
+
 ## Idempotency 規則
 
 | 操作 | 重複検出 | 動作 |
