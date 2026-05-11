@@ -6,15 +6,15 @@
     "email": "kbu94982@gmail.com"
   },
   "metadata": {
-    "description": "LLM research full-lifecycle automation: literature survey → idea validation → experiment → paper draft (8 phases / 4 gates). v0.13.0+ paper-first methodology (early DRAFT.md from Phase 2). v0.14.0+ lab notebook + reproducible failures (POSTMORTEM auto-draft + reproduce.sh). v0.15.0+ decision journal + tags + cross-project lessons DB + blameless culture. v0.16.0+ provenance trace + ALCOA+ correction guideline + daily summary entry. v0.17.0+ visual notebook (MkDocs material HTML build with Chart.js time-series + Phase progress bar + tag inversion).",
-    "version": "0.17.0"
+    "description": "LLM research full-lifecycle automation: literature survey → idea validation → experiment → paper draft (8 phases / 4 gates). v0.13.0+ paper-first methodology (early DRAFT.md from Phase 2). v0.14.0+ lab notebook + reproducible failures (POSTMORTEM auto-draft + reproduce.sh). v0.15.0+ decision journal + tags + cross-project lessons DB + blameless culture. v0.16.0+ provenance trace + ALCOA+ correction guideline + daily summary entry. v0.17.0+ visual notebook (MkDocs material HTML build with Chart.js time-series + Phase progress bar + tag inversion). v0.18.0+ recommendation integrity polish (lessons-search / notebook-viz trailer integration + Phase 8 reviewer input expansion).",
+    "version": "0.18.0"
   },
   "plugins": [
     {
       "name": "auto-research",
-      "description": "End-to-end LLM/ML research workflow plugin. Python (uv + PyTorch + HuggingFace) stack with user-gated 8-phase automation. Covers evaluation, agent/tool-use, fine-tuning, prompt/ICL, and mechanistic interpretability (attention internals). Paper-first methodology + lab notebook with reproducible failure postmortems + decision journal + cross-project lessons DB + ALCOA+ correction culture + visual notebook HTML build (v0.17.0+).",
+      "description": "End-to-end LLM/ML research workflow plugin. Python (uv + PyTorch + HuggingFace) stack with user-gated 8-phase automation. Covers evaluation, agent/tool-use, fine-tuning, prompt/ICL, and mechanistic interpretability (attention internals). Paper-first methodology + lab notebook with reproducible failure postmortems + decision journal + cross-project lessons DB + ALCOA+ correction culture + visual notebook HTML build + recommendation integrity polish (v0.18.0+).",
       "source": "./",
-      "version": "0.17.0",
+      "version": "0.18.0",
       "author": {
         "name": "0h-n0"
       },

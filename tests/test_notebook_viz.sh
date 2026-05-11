@@ -199,6 +199,39 @@ do
   fi
 done
 
+# 12. v0.18.0+ notebook-viz nav 拡張: figures/ + analysis/
+for marker in "figures/*.pdf" "code/analysis" "attention-analyst 出力"
+do
+  if grep -qF "${marker}" "${SKILL_MD}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ SKILL.md missing v0.18.0+ figures/analysis input: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 13. nav_structure.md に figures sub-nav + analysis sub-nav (v0.18.0+)
+for marker in "figures sub-nav (v0.18.0+)" "analysis sub-nav (v0.18.0+" "result-statistician 出力"
+do
+  if grep -qF "${marker}" "${NAV}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ nav_structure.md missing v0.18.0+ sub-nav: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# 14. viz_pipeline.md step 2h (figures/ + analysis/ コピー)
+for marker in "2h. figures/ + analysis/ 追加 (v0.18.0+)" "VIZ_SRC}/docs/results/figures" "VIZ_SRC}/docs/analysis"
+do
+  if grep -qF "${marker}" "${PIPELINE}"; then
+    PASS=$((PASS+1))
+  else
+    echo "✗ viz_pipeline.md missing step 2h: ${marker}" >&2
+    FAIL=$((FAIL+1))
+  fi
+done
+
 echo ""
 echo "test_notebook_viz.sh: ${PASS} pass / ${FAIL} fail"
 

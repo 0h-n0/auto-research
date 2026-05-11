@@ -121,8 +121,20 @@ POSTMORTEM が存在しない run は skip。
 ### 8. Results (`results/index.md`)
 
 入力: `06_RESULTS.md`
++ 追加 (v0.18.0+): `figures/*.pdf` (result-statistician 出力) + `code/analysis/<slug>.py` (attention-analyst output、focus_area=attention のみ)
 
-レンダリング: そのまま (集約 metric 表、figure link)。
+レンダリング: 集約 metric 表、figure link。
+
+**figures sub-nav (v0.18.0+)**:
+- `figures/*.pdf` を `viz-src/docs/results/figures/` に copy
+- mkdocs-material では `<embed src="figures/X.pdf" width="100%" height="600">` で page 内表示
+- PNG / SVG が望ましい (PDF は browser 依存、PDF は link only に格下げ候補 v0.19+)
+- 各 figure に caption を `attr_list` で付与
+
+**analysis sub-nav (v0.18.0+、focus_area=attention のみ)**:
+- `code/analysis/<slug>.py` を `viz-src/docs/analysis/` に copy
+- mkdocs-material の `pymdownx.snippets` で code preview
+- `code/results/probe/*.json` は collapsible `<details>` で raw JSON 表示
 
 ### 9. Review (`review/index.md`)
 
